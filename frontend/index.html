@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Scribbl</title>
+		<meta name="author" content="gelx">
+		<meta name="description" content="No deck? No problem.">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="theme-color" content="rgb(51, 51, 51)" />
+		<link rel="manifest" href="manifest.json">
+
+		<link href="https://fonts.googleapis.com/css?family=Quicksand:300,400,600&display=swap&subset=latin-ext" rel="stylesheet">
+
+		<script type="text/javascript" src="lib/paper-full.js"></script>
+		<script type="text/javascript" src="lib/bunch.js"></script>
+		<script type="text/javascript" src="lib/bnc.js"></script>
+		<script type="text/javascript" src="lib/bnc_router.js"></script>
+		<script type="text/javascript" src="utils.js"></script>
+		<script type="text/javascript" src="socket.js"></script>
+		<script type="text/javascript" src="draw.js"></script>
+		<script type="text/javascript" src="states.js"></script>
+		<style type="text/css">
+			* {
+				box-sizing: border-box;
+				/*outline: 1px solid red;*/
+			}
+
+			html {
+				font-family: 'Quicksand', sans-serif;
+				color: rgb(51, 51, 51);
+				height: 100%;
+			}
+
+			body {
+				margin: 0;
+				padding: 0;
+				height: 100%;
+			}
+
+			bnc-module[name="router"], bnc-module[name="router"] > bnc-state {
+				height: 100%;
+			}
+
+			#state_draw__content {
+				padding-top: 75px;
+				display: flex;
+				height: 100%;
+				flex-direction: row;
+				align-items: stretch;
+			}
+
+			#state_draw__drawing_area {
+				flex-grow: 1;
+			}
+
+			#canvas_holder {
+				height: 100%;
+				width: 100%;
+			}
+
+			#tool_settings {
+				display: flex;
+				flex-flow: row nowrap;
+				justify-content: space-between;
+				background-color: rgba(0, 0, 0, 0.1);
+			}
+
+			.tool_settings__section {
+				display: flex;
+				height: 100%;
+				flex-flow: row wrap;
+				padding: 5px;
+				align-items: center;
+			}
+
+			.tool_settings__section > div {
+				margin: 0px;
+				height: 40px;
+				border: 1px solid rgba(0, 0, 0, 0.22);
+				width: 40px;
+				margin: 3px;
+				border-radius: 10px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+
+			.tool_settings__section .circle {
+				background: black;
+				border-radius: 100%;
+				width: 25px;
+				height: 25px;
+			}
+
+		</style>
+	</head>
+	<body>
+		<bnc-root>
+			<bnc-element name="bnc_router"></bnc-element>
+		</bnc-root>
+	</body>
+</html>
