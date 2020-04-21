@@ -1,18 +1,21 @@
 (function ({ define, resolve, Observable, ComputedObservable }) {
 
-	define('ToolSettings', () => {
+	define('ToolSettings', (Listeners) => {
 		const COLORS = ['#1a1a1a', '#4d4d4d', '#bababa', '#ffffff', '#9e0142', '#d53e4f', '#f46d43', '#fa9fb5', '#fdae61', '#fee08b', '#ffffbf', '#e6f598', '#abdda4', '#66c2a5', '#3288bd', '#5e4fa2'];
-		const WIDTHS = [
-			{ strokeWidth: 4, uiCircleSize: '10px' },
-			{ strokeWidth: 8, uiCircleSize: '15px' },
-			{ strokeWidth: 12, uiCircleSize: '20px' },
-			{ strokeWidth: 16, uiCircleSize: '25px' }
+		const TOOLS = [
+			{ type: 'pen', strokeWidth: 4, uiCircleSize: '10px' },
+			{ type: 'pen', strokeWidth: 8, uiCircleSize: '15px' },
+			{ type: 'pen', strokeWidth: 12, uiCircleSize: '20px' },
+			{ type: 'pen', strokeWidth: 16, uiCircleSize: '25px' },
+			{ type: 'undo' },
+			{ type: 'clear' }
 		];
 
+		const onClearListeners = Listeners();
+		const onUndoListeners = Listeners();
 		const strokeColor$ = Observable(COLORS[0]);
-		const strokeWidth$ = Observable(WIDTHS[1].strokeWidth);
+		const strokeWidth$ = Observable(TOOLS[1].strokeWidth);
 		const isDrawing$ = Observable(true);
-		const isEraser$ = Observable(false);
 
 		const getPathProperties = (...initialSegments) => {
 			return {
@@ -20,46 +23,56 @@
 				strokeColor: strokeColor$.value,
 				strokeWidth: strokeWidth$.value,
 				strokeCap: 'round',
-				...(isEraser$.value ? { data: { isEraser: true } } : {})
 			};
 		};
 
 		return {
 			$template: `
 				<div id="tool_settings">
-					<div class="tool_settings__section" bnc-for="size in WIDTHS">
-						<div bnc-attr="data-size: size.strokeWidth">
-							<div class="circle" bnc-css="width: size.uiCircleSize, height: size.uiCircleSize"></div>
+					<div class="tool_settings__section" bnc-for="tool in TOOLS">
+						<div bnc-click="onToolClicked(tool)"
+							bnc-class="ComputedObservable(strokeWidth$, value => value === tool.strokeWidth ? 'selected' : '')">
+							<div bnc-if="tool.type === 'pen'" class="circle"
+								bnc-css="width: tool.uiCircleSize, height: tool.uiCircleSize">
+							</div>
+							<p bnc-if="tool.type === 'undo'">⤺</p>
+							<p bnc-if="tool.type === 'clear'">♼</p>
 						</div>
 					</div>
 					<div class="tool_settings__section" bnc-for="color in COLORS">
-						<div bnc-attr="data-color: color">
+						<div bnc-click="strokeColor$.value = color"
+							bnc-class="ComputedObservable(strokeColor$, value => value === color ? 'selected' : '')">
 							<div class="circle" bnc-css="background: color"></div>
 						</div>
 					</div>
 				</div>
 			`,
-			$link: (scope, element) => {
-				const settingsElement = element.querySelector('#tool_settings');
-				settingsElement.addEventListener('click', (event) => {
-					const sizeOption = event.target.closest('[data-size]');
-					if (sizeOption) {
-						strokeWidth$.value = parseInt(sizeOption.getAttribute('data-size'));
-					}
-
-					const colorOption = event.target.closest('[data-color]');
-					if (colorOption) {
-						strokeColor$.value = colorOption.getAttribute('data-color');
-					}
-				});
+			$link: (scope, element) => {},
+			onToolClicked: (tool) => {
+				switch (tool.type) {
+					case 'pen':
+						strokeWidth$.value = parseInt(tool.strokeWidth);
+						break;
+					case 'undo':
+						if (isDrawing$.value === true) {
+							onUndoListeners.trigger();	
+						}
+						break;
+					case 'clear':
+						if (isDrawing$.value === true) {
+							onClearListeners.trigger();
+						}
+						break;
+				}
 			},
 			COLORS,
-			WIDTHS,
+			TOOLS,
 			strokeColor$,
 			strokeWidth$,
 			isDrawing$,
-			isEraser$,
 			getPathProperties,
+			onUndo: onUndoListeners.add,
+			onClear: onClearListeners.add
 		};
 	});
 
@@ -106,6 +119,7 @@
 					}
 					if (InternalPathHandler.activePath !== null) {
 						InternalPathHandler.activePath.add(...segments);
+						InternalPathHandler.activePath.reduce();
 					} else {
 						console.error('Trying to add segments without and active path!');
 					}
@@ -119,16 +133,20 @@
 				};
 
 				InternalPathHandler.endActivePath = () => {
-					InternalPathHandler.activePath.simplify(1);
 					InternalPathHandler.finishedPaths.push(InternalPathHandler.activePath);
 					InternalPathHandler.activePath = null;
 				};
 
 				InternalPathHandler.clear = () => {
-					for (let path in InternalPathHandler.finishedPaths) {
+					for (let path of InternalPathHandler.finishedPaths) {
 						path.remove();
 					}
 					InternalPathHandler.finishedPaths = [];
+				};
+
+				InternalPathHandler.undo = () => {
+					const pathToRemove = InternalPathHandler.finishedPaths.pop();
+					pathToRemove.remove();
 				};
 
 				return InternalPathHandler;
@@ -138,7 +156,11 @@
 				const segmentBufferCount = 5;
 				let floatingPath;
 
+				ToolSettings.onUndo(InternalPathHandler.undo);
+				ToolSettings.onClear(InternalPathHandler.clear);
+
 				const anchorFloatingPath = () => {
+					floatingPath.simplify(1);
 					const { segments = [] } = PathExportTools.exportPath(floatingPath);
 					const exportedSegments = PathExportTools.segmentsToArrayBuffer(segments);
 					pathSegmentsListeners.trigger(exportedSegments);
@@ -221,9 +243,7 @@
 			onPathSegments: pathSegmentsListeners.add,
 			onPathCompleted: pathCompletedListeners.add,
 			onPathStarted: pathStartedListeners.add,
-			startPath: (path) => InternalPathHandler.newActivePath(path),
-			addPathSegments: (segments) => InternalPathHandler.appendToActivePath(...segments),
-			completePath: () => InternalPathHandler.endActivePath()
+			InternalPathHandler
 		};
 	});
 
