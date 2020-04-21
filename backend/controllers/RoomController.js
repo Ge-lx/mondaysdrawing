@@ -1,6 +1,6 @@
 const { knex } = require('../database/database');
 const { validate, createShortId } = require('../utils');
-const { defaultRoomConfig } = require('../logic/GameLogic');
+const { defaultRoomConfig, registerNewSocket } = require('../logic/GameLogic');
 
 const RoomController = {};
 
@@ -62,7 +62,8 @@ RoomController.updateRoom = async (req, res) => {
 };
 
 RoomController.getWebSocketForUser = async (req, res) => {
-
+	const socketShortId = registerNewSocket(req.user, req.room);
+	return res.status(200).json({ socketShortId })
 }
 
 module.exports = RoomController;

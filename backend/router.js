@@ -5,13 +5,13 @@ const { AsyncRouter } = require('express-async-router');
 
 const UserController = require('./controllers/UserController');
 const RoomController = require('./controllers/RoomController');
+const GameLogic = require('./logic/GameLogic');
 
 const DIR_FRONTEND = path.join(__dirname, '../frontend');
 const FILE_INDEX = path.join(DIR_FRONTEND, 'index.html');
 
 const HttpRouter = (app) => {
 	const router = AsyncRouter({ send: false });
-
 
 	// Users
 	router.param('userId', async (req, res, param) => {
@@ -46,8 +46,8 @@ const WebSocketRouter = (app) => {
 	express_ws(app);
 
 	// express-ws does not support promisified route handlers
-	app.ws('/room/:roomId/user/:userId', (ws, req) => {
-		RoomController.incomingWebSocketRequest
+	app.ws('/ws/:socketShortId', (ws, req) => {
+		return GameLogic.connectWebSocket(req.params.socketShortId, ws);
 	});
 };
 
