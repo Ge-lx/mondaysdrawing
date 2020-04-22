@@ -3,3 +3,4 @@ node_modules/*
 frontend/lib/bnc.js
 frontend/lib/bunch.js
 frontend/lib/paper-full.js
+backend/database/db.sqlite3
