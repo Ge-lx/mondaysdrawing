@@ -46,6 +46,8 @@ module.exports = {
 		if (schema === undefined) {
 			schema = target;
 			return (target) => checkSchema(target, schema);
+		} else {
+			return checkSchema(target, schema);
 		}
 	}
 };

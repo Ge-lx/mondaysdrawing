@@ -1,171 +1,127 @@
-(function ({ define, resolve, Observable, ComputedObservable }) {
-
-	define('Store', (utils) => {
-		const BASEURL = `${window.location.origin}/api`;
-		const buildUrl = (function () {
-			const regex = /\/:([^/]+)/g;
-			return (template, params) => {
-				return BASEURL + template.replace(regex, (match, key) => {
-					return '/' + params[key];
-				});
-			};
-		}())
-
-		class StoreError extends Error {
-			static CODES = {
-				GENERIC: { message: 'Something went wrong. Sorry about that.' },
-				NETWORK: { message: 'Network error. Please make sure you are online and refresh the page.' },
-				NOT_FOUND: { message: 'The requested resource could not be found.', http: 404 }
-			};
-
-			constructor (code, message, url, request) {
-				if (typeof code === 'number') {
-					code = Object.values(StoreError.CODES).find(({ http }) => http === code) || CODES.GENERIC;
-				}
-
-				super(message || code.message);
-
-				this.name = 'StoreError';
-				this.code = code;
-				this.url = url;
-				this.request = request;
-			};
-		};
-
-		const sendFetch = async (method = 'GET', url, body) => {
-			const request = {
-				method,
-				mode: 'cors',
-				cache: 'no-cache',
-				redirect: 'follow',
-				referrerPolicy: 'origin'
-			};
-
-			if (typeof body === 'object') {
-				request.headers = { 'Content-Type': 'application/json' };
-				request.body = JSON.stringify(body)
-			}
-
-			try {
-				const response = await fetch(url, request);
-				const data = await response.json();
-				if (response.ok) {
-					return data;
-				} else {
-					throw new StoreError(response.status, data.error, url, request);
-				}
-			} catch (error) {
-				throw new StoreError(StoreError.CODES.NETWORK, error.message, url, request);
-			}
-		};
-
-		const ResourceGetter = (path, identifierValidation = {}) => {
-			const validateIdentifiers = utils.validate(identifierValidation);
-
-			return (identifiers = {}) => {
-				identifiers = validateIdentifiers(identifiers);
-
-				const url = buildUrl(path, identifiers);
-				return sendFetch('GET', url);
-			};
-		};
-
-		const ResourceSetter = (path, identifierValidation = {}, payloadValidation = {}, method = 'PUT') => {
-			const validateIdentifiers = utils.validate(identifierValidation);
-			const validatePayload = utils.validate(payloadValidation);
-
-			return (identifiers, payload) => {
-				identifiers = validateIdentifiers(identifiers);
-				payload = validatePayload(payload);
-
-				const url = buildUrl(path, identifiers);
-				return sendFetch(method, url, payload);
-			};
-		};
-
-		const RESOURCES = (function () {
-			const User = {
-				identifiers: { userId: { type: 'string' } },
-				payload: { name: 'string' },
-				paths: {
-					root: '/users',
-					instance: '/user/:userId'
-				}
-			};
-			User.actions = {
-				create: ResourceSetter(User.paths.root, {}, User.payload),
-				load: ResourceGetter(User.paths.instance, User.identifiers),
-				update: ResourceSetter(User.paths.instance, User.identifiers, User.payload)
-			};
-
-			const Room = {
-				identifiers: { roomId: { type: 'string' } },
-				payload: {
-					drawTime: { type: 'number', default: 60 },
-					language: { type: 'string', default: 'en' }
-				},
-				paths: {
-					root: '/rooms',
-					instance: '/room/:roomId',
-					user: '/room/:roomId/user/:userId'
-				}
-			};
-			Room.actions = {
-				create: ResourceSetter(Room.paths.root, {}, Room.payload),
-				load: ResourceGetter(Room.paths.single, Room.identifiers, Room.payload),
-				update: ResourceSetter(Room.paths.single, Room.identifiers, Room.payload),
-				getWebSocket: ResourceSetter(Room.paths.user, { ...Room.identifiers, ...User.identifiers }, {}, 'POST')
-			};
-
-			return { User, Room };
-		}());
-
-		const Store = Object.keys(RESOURCES).reduce((Store, key) => {
-			const Resource = RESOURCES[key];
-			Store[key] = function ResourceInstance (identifiers) {
-				return Object.keys(Resource.actions).reduce((Instance, key) => {
-					const ActionHandler = Resource.actions[key];
-					Instance[key] = payload => ActionHandler(identifiers, payload);
-					return Instance;
-				}, {});
-			};
-			return Store;
-		}, {});
-
-		Store.ErrorCodes = StoreError.CODES;
-		return Store;
-	});
-
+(function ({ define, resolve, Observable, ComputedObservable }) 
 
 	define('state_home', (path$, Store) => {
+		const currentUser$ = Observable(Store.CurrentUser().load());
+		const currentName$ = Observable((currentUser$.value || { name: '' }).name);
+
+		const createUser = async () => {
+			const user = await Store.User().create({ name: currentName$.value });
+			currentUser$.value = user;
+			await Store.CurrentUser().save(user);
+		};
+
+		const updateUser = async () => {
+			const updatedUser = {
+				name: currentName$.value
+			};
+
+			if (!updatedUser.name || updatedUser.name === '') {
+				currentName$.value = currentUser$.value.name;
+				return;
+			}
+
+			const user = await Store
+				.User({ userId: currentUser$.value.shortId })
+				.update(updatedUser);
+			currentUser$.value = user;
+			await Store.CurrentUser().save(user);
+		};
+
+
+		const drawTime$ = Observable(60);
+		const language$ = Observable('en');
+		const LANGUAGES = [
+			{ name: 'English', key: 'en' },
+			{ name: 'Deutsch', key: 'de' }
+		];
+		const createRoom = async () => {
+			const room = await Store.Room().create({
+				drawTime: drawTime$.value,
+				language: language$.value
+			});
+			joinRoom(room.shortId);
+		};
+
+		const joinRoom = (roomId) => {
+			resolve((state_draw) => state_draw.$go(roomId));
+		};
+
 		return {
 			$go: () => path$.value = {},
 			$when: path => Object.keys(path).length === 0,
 			$template: `
 				<div id="state_home__popup">
 					<div class="state_home_panel">
-						<h3 bnc-click="createUser()">User config</h3>
-
+						<div class="state_home__create_user" bnc-if-not="currentUser$">
+							<h3>Create User</h3>
+							<input placeholder="Your name" type="name" bnc-model="currentName$"/>
+							<button bnc-click="createUser()">Create</button>
+						</div>
+						
+						<div class="state_home__change_user" bnc-if="currentUser$">
+							<input placeholder="Your name cannot be empty" type="name" bnc-model="currentName$"/>
+							<button bnc-click="updateUser()">Save</button>
+						</div>
 					</div>
-					<div class="state_home_panel">
-						<h3>Create or Join room</h3>
+					<div class="state_home_panel" bnc-if="currentUser$">
+						<div class="state_home__join_room">
+							<h3>Join a room by entering its ID below</h3>
+							<input placeholder"ID" type="text" name="roomId" bnc-model="currentRoomId$"/>
+							<button bnc-click="joinRoom(currentRoomId$.value)">Join</button>
+
+						</div>
+						<div class="state_home__create_room">
+							<h3>Or create your own room</h3>
+							<input placeholder=60 type="number" min="1" max="3600" bnc-model="drawTime$"/>
+							<div class="state_home__create_room__languages" bnc-for="lang in LANGUAGES">
+								<div class="state_home__create_room__language"
+									bnc-class="ComputedObservable(language$, key => lang.key === key ?
+										'state_home__create_room__language selected' :
+										'state_home__create_room__language')"
+									bnc-click="language$.value = lang.key"
+									bnc-bind="lang.name">
+								</div>
+							</div>
+							<button bnc-click="createRoom()">Create</button>
+						</div>
 					</div>
 				</div>
 			`,
-			createUser: async () => {
-				const user = await Store.User().create({ name: 'Gelx' });
-				console.log('User: ', user);
-			}
+			currentName$,
+			currentUser$,
+			createUser,
+			updateUser,
+			LANGUAGES,
+			currentRoomId$: Observable(''),
+			language$,
+			drawTime$,
+			createRoom,
+			joinRoom,
 		};
 	});
 
-	define('state_draw', (path$) => {
+	define('state_draw', (path$, Store) => {
+		const room$ = Observable();
+
 		return {
 			$go: (room) => path$.value = { room },
 			$when: path => path.room,
+			$onEnter: async () => {
+				try {
+					room$.value = await Store.Room({ roomId: path$.value.room }).load();
+				} catch (error) {
+					console.error('Could not find room with id ', path$.value.room);
+					resolve((state_home) => state_home.$go());
+				}
+				
+			},
+			$onLeave: async () => {
+				console.log('leaving state');
+			},
 			$template: `
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
+						<h3 bnc-bind="ComputedObservable(room$, room => (room || {}).shortId)"></h3>
 						<bnc-element name="ToolSettings"></bnc-element>
 					</div>
 					<div id="state_draw__drawing_area">
@@ -175,7 +131,8 @@
 			`,
 			$link: (scope, element) => {
 
-			}
+			},
+			room$,
 		}
 	});
 

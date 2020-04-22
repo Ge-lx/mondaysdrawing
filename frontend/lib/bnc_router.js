@@ -36,6 +36,13 @@
 					} else if (matchingStates.length < 1) {
 						console.error('No state matched ', { path });
 					} else {
+						const oldState = currentState$.value;
+						if (oldState && typeof oldState.$onLeave === 'function') {
+							oldState.$onLeave();
+						}
+						if (typeof matchingStates[0].$onEnter === 'function') {
+							matchingStates[0].$onEnter();
+						}
 						currentState$.value = matchingStates[0];
 					}
 				});
