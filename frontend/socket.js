@@ -1,49 +1,121 @@
 (function ({ define, resolve, Observable, ComputedObservable }) {
 
-	define('Socket', (isLocal) => {
-		const activeWebSocket$ = Observable({ send: () => {}, close: () => {} });
-
-
-		const online$ = Observable(false);
-
-		let autoReconnect = true;
-		const reconnectIfNeeded = () => {
-			if (autoReconnect !== false) {
-				setTimeout(createSocket, 5000);
-			}
+	define('MessageTypes', () => {
+		return {
+			USERS: 0,
+			CHAT: 1,
+			TURN_START: 2,
+			TURN_END: 3,
+			PATH_START: 4,
+			PATH_END: 5,
+			PATH_UNDO: 6,
+			PATH_CLEAR: 7,
 		};
-
-		const createSocket = () => {
-			let socket;
-			try {
-				socket = new WebSocket(`${isLocal ? 'ws' : 'wss'}://${window.location.host}/socket`);
-			} catch (error) {
-				return reconnectIfNeeded();
-			} 
-			socket.onopen = () => {
-				online$.value = true;
-				socket$.value = socket;
-			};
-
-			socket.onclose = (close) => {
-				console.log('Socket closed.', close);
-				online$.value = false;
-				reconnectIfNeeded();
-			};
-			return socket;
-		};
-
-		const reconnect = () => {
-			if ([2, 3].includes(socket$.value.readyState) === false) {
-				autoReconnect = false;
-				socket$.value.close();
-			}
-			createSocket();
-			autoReconnect = true;
-		};
-
-		createSocket();
-		return { socket$, online$, reconnect };
 	});
+	define('SocketPath', () => Observable(''));
+	define('Socket', (isLocal, SocketPath$, Listeners, MessageTypes) => {
+		const online$ = Observable(false);
+		const socket$ = Observable();
+		const onMessageListeners = Listeners();
+		const onBinaryListeners = Listeners();
 
+		const socketUrl$ = ComputedObservable(SocketPath$, socketPath => {
+			if (!socketPath) {
+				return null;
+			} else {
+				return `${isLocal ? 'ws' : 'wss'}://${window.location.host}${socketPath}`;
+			}
+		});
+
+		const heartbeat = (function () {
+			const maxDeadTime = 5000 + 1000;
+			const restartPoll = 2000;
+			let timeout;
+
+			return {
+				alive: () => {
+					clearTimeout(timeout);
+					timeout = setTimeout(closeSocket, maxDeadTime);
+				},
+				clearTimeout: () => clearTimeout(timeout),
+				restart: () => {
+					timeout = setTimeout(() => connectToUrl(socketUrl$.value), restartPoll);
+				}
+			};
+		}());
+
+		const closeSocket = ({ reason } = {}) => {
+			if (reason === 'UNKNOWN') {
+				console.info('Socket expired.');
+				resolve((path$) => path$.trigger());
+			}
+			const socket = socket$.value;
+			if (socket) {
+				online$.value = false;
+				socket.close();
+				socket$.value = null;
+				heartbeat.clearTimeout();
+				console.info('Socket disconnected.');
+			}
+
+			heartbeat.restart();
+		};
+
+		const onSocketMessage = ({ data }) => {
+			heartbeat.alive();
+			if (data === 'ping') {
+				return socket$.value.send('pong');
+			}
+
+			if (data instanceof Blob) {
+				return data.arrayBuffer()
+					.then(data => {
+						return onBinaryListeners.trigger(new Uint16Array(data));
+					});
+			} else {
+				onMessageListeners.trigger(JSON.parse(data));
+			}
+		};
+
+		const connectToUrl = (url) => {
+			const socket = new WebSocket(url);
+			socket$.value = socket;
+
+			socket.onopen = () => {
+				heartbeat.alive();
+				online$.value = true;
+				console.info('Socket connected.');
+			};
+			socket.onerror = (errorEvent) => {
+				// ignored
+			};
+			socket.onclose = closeSocket;
+			socket.onmessage = onSocketMessage;
+		};
+
+		socketUrl$.stream(socketUrl => {
+			if (socketUrl === null) {
+				closeSocket();
+			} else {
+				connectToUrl(socketUrl)
+			}
+		});
+
+		return {
+			socket$,
+			online$,
+			addMessageListener: onMessageListeners.add,
+			addBinaryListener: onBinaryListeners.add,
+			send: (data) => {
+				if (online$.value !== true) {
+					return;
+				}
+
+				if (data instanceof ArrayBuffer === false && typeof data === 'object') {
+					data = JSON.stringify(data);
+				}
+				socket$.value.send(data);
+			}
+		};
+	});
 }(bnc_bunch));

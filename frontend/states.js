@@ -1,4 +1,4 @@
-(function ({ define, resolve, Observable, ComputedObservable }) 
+(function ({ define, resolve, Observable, ComputedObservable }) {
 
 	define('state_home', (path$, Store) => {
 		const currentUser$ = Observable(Store.CurrentUser().load());
@@ -100,7 +100,7 @@
 		};
 	});
 
-	define('state_draw', (path$, Store) => {
+	define('state_draw', (path$, Store, SocketPath$) => {
 		const room$ = Observable();
 
 		return {
@@ -114,6 +114,13 @@
 					resolve((state_home) => state_home.$go());
 				}
 				
+				const user = await Store.CurrentUser().load();
+				if (!user) {
+					console.error('Could not load current user!');
+				}
+
+				const { socketShortId } = await Store.Room({ userId: user.shortId, roomId: room$.value.shortId}).getWebSocket();
+				SocketPath$.value = `/ws/${socketShortId}`;
 			},
 			$onLeave: async () => {
 				console.log('leaving state');
