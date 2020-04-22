@@ -30,8 +30,8 @@ class Room {
 
 	broadcastUsers () {
 		const users = {};
-		for (let userId in userSocketsByUserShortId) {
-			const userSocket = userSocketsByUserShortId[userId];
+		for (let userId in this.userSocketsByUserShortId) {
+			const userSocket = this.userSocketsByUserShortId[userId];
 			const { name } = userSocket.user;
 			users[userId] = { name, isOnline: userSocket.isOnline() };
 		}
@@ -39,12 +39,12 @@ class Room {
 	}
 
 	broadcast (data, except) {
-		for (let userId in userSocketsByUserShortId) {
+		for (let userId in this.userSocketsByUserShortId) {
 			if (userId === except) {
 				continue;
 			} else {
 				try {
-					userSocketsByUserShortId[userId].send(data);
+					this.userSocketsByUserShortId[userId].send(data);
 				} catch (error) {
 					// ignored
 				}
