@@ -132,7 +132,7 @@
 						<bnc-element name="ToolSettings"></bnc-element>
 					</div>
 					<div id="state_draw__drawing_area">
-						<bnc-element name="paper_canvas"></bnc-element>
+						<bnc-element name="PathHandler"></bnc-element>
 					</div>
 				</div>
 			`,

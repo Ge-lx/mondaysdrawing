@@ -84,15 +84,21 @@
 		};
 
 		const segmentsToArrayBuffer = (segments = []) => {
-			return Uint16Array.from(segments.flat().map(x => x + 100));
+			return Int16Array.from(segments.flat(2));
 		};
 
-		const segmentsFromArrayBuffer = (uint16Array) => {
-			const segmentCount = uint16Array.length / 2;
+		const segmentsFromArrayBuffer = (int16Array) => {
+			if (int16Array.length === 2) {
+				return [[...int16Array]];
+			}
+			const segmentCount = int16Array.length / 6;
 			const segments = Array(segmentCount);
 			for (let i = 0; i < segmentCount; i++) {
-				const j = i*2;
-				segments[i] = [uint16Array[j], uint16Array[j+1]];
+				segments[i] = Array(3);
+				for (let j = 0; j < 3; j++) {
+					const k = i * 6 + j*2;
+					segments[i][j] = [int16Array[k], int16Array[k+1]];
+				}
 			};
 			return segments;
 		};
@@ -100,58 +106,59 @@
 		return { exportPath, segmentsToArrayBuffer, segmentsFromArrayBuffer };
 	});
 
-	define('paper_canvas', (PathExportTools, ToolSettings, Listeners) => {
+	define('PathHandler', (PathExportTools, ToolSettings, Listeners) => {
 		const pathCompletedListeners = Listeners();
 		const pathSegmentsListeners = Listeners();
 		const pathStartedListeners = Listeners();
 
-		let InternalPathHandler;
-		const onPaperInitialized = (paper) => {
-			InternalPathHandler = (function () {
-				const InternalPathHandler = {
-					finishedPaths: [],
-					activePath: null
-				};
+		const InternalPathHandler = (function () {
+			const InternalPathHandler = {
+				finishedPaths: [],
+				activePath: null
+			};
 
-				InternalPathHandler.appendToActivePath = (...segments) => {
-					if (segments.length === 0) {
-						return;
+			InternalPathHandler.appendToActivePath = (...segments) => {
+				if (segments.length === 0) {
+					return;
+				}
+				if (InternalPathHandler.activePath !== null) {
+					InternalPathHandler.activePath.add(...segments);
+					InternalPathHandler.activePath.reduce();
+				} else {
+					console.error('Trying to add segments without and active path!');
+				}
+			};
+
+			InternalPathHandler.newActivePath = ({ strokeColor, strokeWidth, strokeCap, segments }) => {
+				if (InternalPathHandler.activePath !== null) {
+					InternalPathHandler.endActivePath();
+				}
+				InternalPathHandler.activePath = new paper.Path({ strokeColor, strokeWidth, strokeCap, segments });
+			};
+
+			InternalPathHandler.endActivePath = () => {
+				InternalPathHandler.finishedPaths.push(InternalPathHandler.activePath);
+				InternalPathHandler.activePath = null;
+			};
+
+			InternalPathHandler.clear = () => {
+				for (let path of InternalPathHandler.finishedPaths) {
+					if (path) {
+						path.remove();	
 					}
-					if (InternalPathHandler.activePath !== null) {
-						InternalPathHandler.activePath.add(...segments);
-						InternalPathHandler.activePath.reduce();
-					} else {
-						console.error('Trying to add segments without and active path!');
-					}
-				};
+				}
+				InternalPathHandler.finishedPaths = [];
+			};
 
-				InternalPathHandler.newActivePath = ({ strokeColor, strokeWidth, strokeCap, segments }) => {
-					if (InternalPathHandler.activePath !== null) {
-						endActivePath();
-					}
-					InternalPathHandler.activePath = new paper.Path({ strokeColor, strokeWidth, strokeCap, segments });
-				};
+			InternalPathHandler.undo = () => {
+				const pathToRemove = InternalPathHandler.finishedPaths.pop();
+				pathToRemove.remove();
+			};
 
-				InternalPathHandler.endActivePath = () => {
-					InternalPathHandler.finishedPaths.push(InternalPathHandler.activePath);
-					InternalPathHandler.activePath = null;
-				};
+			return InternalPathHandler;
+		}());;
 
-				InternalPathHandler.clear = () => {
-					for (let path of InternalPathHandler.finishedPaths) {
-						path.remove();
-					}
-					InternalPathHandler.finishedPaths = [];
-				};
-
-				InternalPathHandler.undo = () => {
-					const pathToRemove = InternalPathHandler.finishedPaths.pop();
-					pathToRemove.remove();
-				};
-
-				return InternalPathHandler;
-			}());
-
+		const onPaperInitialized = () => {
 			const drawingHandler = (function () {
 				const segmentBufferCount = 5;
 				let floatingPath;
@@ -162,8 +169,7 @@
 				const anchorFloatingPath = () => {
 					floatingPath.simplify(1);
 					const { segments = [] } = PathExportTools.exportPath(floatingPath);
-					const exportedSegments = PathExportTools.segmentsToArrayBuffer(segments);
-					pathSegmentsListeners.trigger(exportedSegments);
+					pathSegmentsListeners.trigger(segments);
 					InternalPathHandler.appendToActivePath(...segments);
 					floatingPath.remove();
 				};
@@ -247,33 +253,46 @@
 		};
 	});
 
-	resolve((paper_canvas, PathExportTools) => {
+	resolve((PathHandler, ToolSettings, PathExportTools, Socket, MessageTypes) => {
 		var size = 0;
 
-		paper_canvas.onPathStarted((path) => {
-			// console.log('onPathStarted');
-			size += JSON.stringify(path).length * 2;
-			// setTimeout(() => {
-			// 	paper_canvas.startPath(path)
-			// }, 2000);
-		});
-		paper_canvas.onPathCompleted(() => {
-			// console.log('onPathCompleted');
-			size += 'onPathCompleted'.length * 2;
-			console.log('This path was ' + size + ' bytes');
-			size = 0;
-			// setTimeout(paper_canvas.completePath, 2000);
+		PathHandler.onPathStarted((path) => Socket.send({ type: MessageTypes.PATH_START, path }));
+		PathHandler.onPathCompleted(() => Socket.send({ type: MessageTypes.PATH_END }));
+		PathHandler.onPathSegments((segments) => {
+			const array = PathExportTools.segmentsToArrayBuffer(segments);
+			Socket.send(array.buffer);
 		});
 
-		paper_canvas.onPathSegments((buffer) => {
-			// console.log('Segments in byte: ', 2 * buffer.length);
-			size += 3 * buffer.length;
-			// console.log('onPathSegments: ', buffer);
-			// setTimeout(() => {
+		ToolSettings.onClear(() => Socket.send({ type: MessageTypes.PATH_CLEAR }));
+		ToolSettings.onUndo(() => Socket.send({ type: MessageTypes.PATH_UNDO }));
 
-			// 	const segments = PathExportTools.segmentsFromArrayBuffer(buffer);
-			// 	paper_canvas.addPathSegments(segments);
-			// }, 2000);
+		Socket.addBinaryListener((arrayBuffer) => {
+			const array = new Int16Array(arrayBuffer);
+			const segments = PathExportTools.segmentsFromArrayBuffer(array);
+			PathHandler.InternalPathHandler.appendToActivePath(...segments);
+		});
+
+		// The order of segments and path_end is not always clean
+		let pathEndReceived = false;
+		Socket.addMessageListener((data) => {
+			if (pathEndReceived) {
+				PathHandler.InternalPathHandler.endActivePath();
+				pathEndReceived = false;
+			}
+
+			switch (data.type) {
+				case MessageTypes.PATH_START:
+					PathHandler.InternalPathHandler.newActivePath(data.path);
+					break;
+				case MessageTypes.PATH_END:
+					pathEndReceived = true;
+					break;
+				case MessageTypes.PATH_CLEAR:
+					PathHandler.InternalPathHandler.clear();
+					break;
+				case MessageTypes.PATH_UNDO:
+					PathHandler.InternalPathHandler.undo();
+			}
 		});
 	});
 }(bnc_bunch));
