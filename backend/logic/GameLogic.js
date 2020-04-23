@@ -56,7 +56,7 @@ class Room {
 		console.log(`${userSocket.user.name}(${userSocket.user.shortId}) join ${this.config.shortId} with socket ${userSocket.shortId}`);
 		
 		userSocket.onMessage(data => {
-			console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
+			// console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
 			const forwardTypes = [
 				MessageTypes.PATH_START,
 				MessageTypes.PATH_END,
@@ -64,12 +64,17 @@ class Room {
 				MessageTypes.PATH_CLEAR
 			];
 			if (forwardTypes.includes(data.type)) {
-				this.broadcast(data, userShortId);
+				return this.broadcast(data, userShortId);
+			}
+
+			switch (data.type) {
+				case MessageTypes.CHAT:
+					this.broadcast({ ...data, userId: userShortId }, userShortId);
 			}
 		});
 
 		userSocket.onBinary(data => {
-			console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
+			// console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
 			this.broadcast(data, userShortId);
 		});
 
@@ -181,16 +186,20 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 		room = new Room(roomConfig);
 		roomMap[roomConfig.shortId] = room;
 	}
+
 	const existingSocketForUser = userSocketsByUserShortId[user.shortId];
 	if (existingSocketForUser !== undefined) {
-		if (existingSocketForUser.isOnline()) {
-			existingSocketForUser.closeWebSocket(true);
+		existingSocketForUser.closeWebSocket();
+
+		if (existingSocketForUser.room.config.shortId === roomConfig.shortId) {
+			return existingSocketForUser.shortId;
+		} else {
+			// Cleanup abandoned userSockets
+			delete userSocketsByShortId[existingSocketForUser.shortId];
 		}
-		if (existingSocketForUser.room.config.shortId !== roomConfig.shortId) {
-			existingSocketForUser.changeRoom(room);
-		}
-		return existingSocketForUser.shortId;
 	}
+
+
 	const socket = new UserSocket(user, room);
 	userSocketsByUserShortId[user.shortId] = socket;
 	userSocketsByShortId[socket.shortId] = socket;
