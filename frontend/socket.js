@@ -78,6 +78,7 @@
 		};
 
 		const onSocketMessage = ({ data }) => {
+			console.log('data: ', data);
 			heartbeat.alive();
 			if (data === 'ping') {
 				return socket$.value.send('pong');

@@ -40,9 +40,7 @@ class Room {
 
 	broadcast (data, except) {
 		for (let userId in this.userSocketsByUserShortId) {
-			if (userId === except) {
-				continue;
-			} else {
+			if (userId !== except) {
 				try {
 					this.userSocketsByUserShortId[userId].send(data);
 				} catch (error) {
@@ -55,9 +53,10 @@ class Room {
 	join (userSocket) {
 		const userShortId = userSocket.user.shortId;
 		this.userSocketsByUserShortId[userShortId] = userSocket;
-		console.log(`${userSocket.user.name} join ${this.config.shortId} with socket ${userSocket.shortId}`);
+		console.log(`${userSocket.user.name}(${userSocket.user.shortId}) join ${this.config.shortId} with socket ${userSocket.shortId}`);
 		
 		userSocket.onMessage(data => {
+			console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
 			const forwardTypes = [
 				MessageTypes.PATH_START,
 				MessageTypes.PATH_END,
@@ -70,6 +69,7 @@ class Room {
 		});
 
 		userSocket.onBinary(data => {
+			console.log(`${userSocket.user.name} in ${this.config.shortId} : `, data);
 			this.broadcast(data, userShortId);
 		});
 
@@ -179,7 +179,7 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 	let room = roomMap[roomConfig.shortId];
 	if (room === undefined) {
 		room = new Room(roomConfig);
-		roomMap[room.shortId] = room;
+		roomMap[roomConfig.shortId] = room;
 	}
 	const existingSocketForUser = userSocketsByUserShortId[user.shortId];
 	if (existingSocketForUser !== undefined) {
@@ -190,13 +190,11 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 			existingSocketForUser.changeRoom(room);
 		}
 		return existingSocketForUser.shortId;
-	} else {
-		const socket = new UserSocket(user, room);
-		userSocketsByUserShortId[user.shortId] = socket;
-		userSocketsByShortId[socket.shortId] = socket;
-		return socket.shortId;
 	}
-	
+	const socket = new UserSocket(user, room);
+	userSocketsByUserShortId[user.shortId] = socket;
+	userSocketsByShortId[socket.shortId] = socket;
+	return socket.shortId;
 };
 
 module.exports = GameLogic;
