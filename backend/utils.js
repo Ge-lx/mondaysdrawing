@@ -1,5 +1,4 @@
 const shortid = require('shortid');
-shortid.characters('αβγδεζηθικλμabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
 
 module.exports = {
 	createShortId: shortid.generate,
