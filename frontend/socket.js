@@ -29,7 +29,7 @@
 
 		const heartbeat = (function () {
 			const maxDeadTime = 5000 + 1000;
-			const restartPoll = 2000;
+			const restartPoll = 5000;
 			let timeout;
 
 			return {
@@ -39,6 +39,7 @@
 				},
 				clearTimeout: () => clearTimeout(timeout),
 				restart: () => {
+					clearTimeout(timeout);
 					timeout = setTimeout(() => connectToUrl(socketUrl$.value), restartPoll);
 				}
 			};
@@ -47,6 +48,7 @@
 		const closeSocket = ({ reason } = {}) => {
 			if (reason === 'UNKNOWN') {
 				console.info('Socket expired.');
+				// Reloading the state gets new socket for current room and user
 				resolve((path$) => path$.trigger());
 			}
 			const socket = socket$.value;
@@ -54,7 +56,6 @@
 				online$.value = false;
 				socket.close();
 				socket$.value = null;
-				heartbeat.clearTimeout();
 				console.info('Socket disconnected.');
 			}
 

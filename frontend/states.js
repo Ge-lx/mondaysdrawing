@@ -128,7 +128,7 @@
 			$template: `
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
-						<h3 bnc-bind="ComputedObservable(room$, room => (room || {}).shortId)"></h3>
+						<h3 style="font-family: 'Times New Roman'" bnc-bind="ComputedObservable(room$, room => (room || {}).shortId)"></h3>
 						<bnc-element name="ToolSettings"></bnc-element>
 					</div>
 					<div id="state_draw__drawing_area">
