@@ -21,7 +21,7 @@ Simple drawing game
 	- [ ] Artwork?
 - [x] Server Database -> `/backend/database`
 - [x] Server Routing -> `/backend/router.js`
-- [ ] Server REST -> `/backend/controllers`
+- [x] Server REST -> `/backend/controllers`
 	- [x] User Handling -> `./UserController.js`
 	- [x] Room Handling -> `./RoomController.js`
 - [x] Server WebSocket -> `/backend/logic/GameLogic.js`
