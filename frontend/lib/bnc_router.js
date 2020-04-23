@@ -29,7 +29,7 @@
 			.then(states => {
 				const currentState$ = Observable();
 
-				path$.stream(path => {
+				path$.stream((path, oldPath) => {
 					const matchingStates = states.filter(state => state.$when(path));
 					if (matchingStates.length > 1) {
 						console.error('Multiple states matched ', { path, matchingStates });

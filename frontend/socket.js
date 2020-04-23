@@ -15,17 +15,9 @@
 	define('SocketPath', () => Observable(''));
 	define('Socket', (isLocal, SocketPath$, Listeners, MessageTypes) => {
 		const online$ = Observable(false);
-		const socket$ = Observable();
+		const socket$ = Observable(null);
 		const onMessageListeners = Listeners();
 		const onBinaryListeners = Listeners();
-
-		const socketUrl$ = ComputedObservable(SocketPath$, socketPath => {
-			if (!socketPath) {
-				return null;
-			} else {
-				return `${isLocal ? 'ws' : 'wss'}://${window.location.host}${socketPath}`;
-			}
-		});
 
 		const heartbeat = (function () {
 			const maxDeadTime = 5000 + 1000;
@@ -37,13 +29,37 @@
 					clearTimeout(timeout);
 					timeout = setTimeout(closeSocket, maxDeadTime);
 				},
-				clearTimeout: () => clearTimeout(timeout),
 				restart: () => {
 					clearTimeout(timeout);
-					timeout = setTimeout(() => connectToUrl(socketUrl$.value), restartPoll);
-				}
+					timeout = setTimeout(openSocket, restartPoll);
+				},
+				clearTimeout: () => clearTimeout(timeout),
 			};
 		}());
+
+		const openSocket = () => {
+			if (socket$.value !== null) {
+				return;
+			}
+
+			const socketUrl = socketUrl$.value;
+			if (socketUrl === null) {
+				return;
+			}
+
+			const socket = new WebSocket(socketUrl);
+			socket$.value = socket;
+
+			socket.onclose = closeSocket;
+			socket.onmessage = onSocketMessage;
+			socket.onerror = (errorEvent) => { /* ignored */ };
+			socket.onopen = () => {
+				online$.value = true;
+				console.info('Socket connected.');
+			};
+
+			heartbeat.alive();
+		};
 
 		const closeSocket = ({ reason } = {}) => {
 			if (reason === 'UNKNOWN') {
@@ -56,9 +72,8 @@
 				online$.value = false;
 				socket.close();
 				socket$.value = null;
-				console.info('Socket disconnected.');
+				console.info('Socket disconnected. ', reason);
 			}
-
 			heartbeat.restart();
 		};
 
@@ -78,27 +93,19 @@
 			}
 		};
 
-		const connectToUrl = (url) => {
-			const socket = new WebSocket(url);
-			socket$.value = socket;
-
-			socket.onopen = () => {
-				heartbeat.alive();
-				online$.value = true;
-				console.info('Socket connected.');
-			};
-			socket.onerror = (errorEvent) => {
-				// ignored
-			};
-			socket.onclose = closeSocket;
-			socket.onmessage = onSocketMessage;
-		};
+		const socketUrl$ = ComputedObservable(SocketPath$, socketPath => {
+			if (!socketPath) {
+				return null;
+			} else {
+				return `${isLocal ? 'ws' : 'wss'}://${window.location.host}${socketPath}`;
+			}
+		});
 
 		socketUrl$.stream(socketUrl => {
 			if (socketUrl === null) {
 				closeSocket();
 			} else {
-				connectToUrl(socketUrl)
+				openSocket();
 			}
 		});
 

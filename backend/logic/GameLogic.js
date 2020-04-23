@@ -55,7 +55,8 @@ class Room {
 	join (userSocket) {
 		const userShortId = userSocket.user.shortId;
 		this.userSocketsByUserShortId[userShortId] = userSocket;
-
+		console.log(`${userSocket.user.name} join ${this.config.shortId} with socket ${userSocket.shortId}`);
+		
 		userSocket.onMessage(data => {
 			const forwardTypes = [
 				MessageTypes.PATH_START,
@@ -73,6 +74,7 @@ class Room {
 		});
 
 		userSocket.onConnectionChange(() => {
+			console.log(`${userSocket.user.name} in ${this.config.shortId} : ${userSocket.isOnline()? 'online' : 'offline' }`);
 			this.broadcastUsers();
 		});
 	};
@@ -96,6 +98,11 @@ class UserSocket {
 	onMessage (callback){ this.onMessageHandler = callback	};
 	onConnectionChange (callback) { this.onConnectionChangeHandler = callback };
 	onBinary (callback) { this.onBinaryHandler = callback };
+
+	changeRoom (room) {
+		this.room = room;
+		this.room.join(this);
+	};
 
 	isOnline () {
 		return this.socket && this.socket.readyState === 1;
@@ -178,6 +185,9 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 	if (existingSocketForUser !== undefined) {
 		if (existingSocketForUser.isOnline()) {
 			existingSocketForUser.closeWebSocket(true);
+		}
+		if (existingSocketForUser.room.config.shortId !== roomConfig.shortId) {
+			existingSocketForUser.changeRoom(room);
 		}
 		return existingSocketForUser.shortId;
 	} else {
