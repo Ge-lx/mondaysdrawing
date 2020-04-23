@@ -1,8 +1,17 @@
 (function ({ define, resolve, Observable, ComputedObservable }) {
 
 	define('state_home', (path$, Store) => {
-		const currentUser$ = Observable(Store.CurrentUser().load());
+		const currentUser$ = Observable(null);
 		const currentName$ = Observable((currentUser$.value || { name: '' }).name);
+		const updateCurrentUser = async () => {
+			try {
+				currentUser$.value = await Store.CurrentUser().load();
+				currentName$.value = currentUser$.value.name;
+			} catch (error) {
+				currentUser$.value = null;
+			}
+		};
+		updateCurrentUser();
 
 		const createUser = async () => {
 			const user = await Store.User().create({ name: currentName$.value });
@@ -23,8 +32,8 @@
 			const user = await Store
 				.User({ userId: currentUser$.value.shortId })
 				.update(updatedUser);
-			currentUser$.value = user;
 			await Store.CurrentUser().save(user);
+			await updateCurrentUser();
 		};
 
 
@@ -49,6 +58,9 @@
 		return {
 			$go: () => path$.value = {},
 			$when: path => Object.keys(path).length === 0,
+			$onEnter: () => {
+				updateCurrentUser();
+			},
 			$template: `
 				<div id="state_home__popup">
 					<div class="state_home_panel">
@@ -102,28 +114,36 @@
 
 	define('state_draw', (path$, Store, SocketPath$) => {
 		const room$ = Observable();
+		const goHome = () => resolve((state_home) => state_home.$go());
 
 		return {
 			$go: (room) => path$.value = { room },
 			$when: path => path.room,
 			$onEnter: async () => {
+				console.log('enter state_draw');
 				try {
 					room$.value = await Store.Room({ roomId: path$.value.room }).load();
 				} catch (error) {
 					console.error('Could not find room with id ', path$.value.room);
-					resolve((state_home) => state_home.$go());
+					return goHome();
 				}
 				
-				const user = await Store.CurrentUser().load();
-				if (!user) {
-					console.error('Could not load current user!');
+				try {
+					const user = await Store.CurrentUser().load();
+					const { socketShortId } = await Store
+						.Room({ userId: user.shortId, roomId: room$.value.shortId})
+						.getWebSocket();
+					
+					SocketPath$.value = `/ws/${socketShortId}`;
+				} catch (error) {
+					return goHome();
 				}
 
-				const { socketShortId } = await Store.Room({ userId: user.shortId, roomId: room$.value.shortId}).getWebSocket();
-				SocketPath$.value = `/ws/${socketShortId}`;
+				
 			},
 			$onLeave: async () => {
-				console.log('leaving state');
+				console.log('leave state_draw');
+				SocketPath$.value = null;
 			},
 			$template: `
 				<div id="state_draw__content">

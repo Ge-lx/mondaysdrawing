@@ -24,7 +24,6 @@
 				if (typeof code === 'number') {
 					code = Object.values(StoreError.CODES).find(({ http }) => http === code) || CODES.GENERIC;
 				}
-
 				super(message || code.message);
 
 				this.name = 'StoreError';
@@ -48,27 +47,31 @@
 				request.body = JSON.stringify(body)
 			}
 
+			
+			let response;
 			try {
-				const response = await fetch(url, request);
-				const data = await response.json();
-				if (response.ok) {
-					return data;
-				} else {
-					throw new StoreError(response.status, data.error, url, request);
-				}
+				response = await fetch(url, request);
 			} catch (error) {
 				throw new StoreError(StoreError.CODES.NETWORK, error.message, url, request);
 			}
-		};
+			const data = await response.json();
+			if (response.ok) {
+				return data;
+			} else {
+				throw new StoreError(response.status, data.error, url, request);
+			}
 		
+		};
+
 		const CacheGetter = (path, identifierValidation = {}) => {
 			const validateIdentifiers = utils.validate(identifierValidation);
 			return (identifiers = {}) => {
 				identifiers = validateIdentifiers(identifiers);
 
 				const storageKey = buildPath(path, identifiers);
-				return JSON.parse(localStorage.getItem(storageKey));
-			}
+				const parsed = JSON.parse(localStorage.getItem(storageKey));
+				return Promise.resolve(parsed);
+			}; 
 		};
 
 		const CacheSetter = (path, identifierValidation = {}, payloadValidation = {}) => {
@@ -80,7 +83,19 @@
 				payload = validatePayload(payload);
 
 				const storageKey = buildPath(path, identifiers);
-				return localStorage.setItem(path, JSON.stringify(payload));
+				localStorage.setItem(path, JSON.stringify(payload));
+				return Promise.resolve();
+			};
+		};
+
+		const CacheDeleter = (path, identifierValidation = {}) => {
+			const validateIdentifiers = utils.validate(identifierValidation);
+			return (identifiers = {}) => {
+				identifiers = validateIdentifiers(identifiers);
+
+				const storageKey = buildPath(path, identifiers);
+				localStorage.removeItem(storageKey);
+				return Promise.resolve();
 			};
 		};
 
@@ -108,6 +123,7 @@
 			};
 		};
 
+		let Store;
 		const RESOURCES = (function () {
 			const User = {
 				identifiers: { userId: { type: 'string' } },
@@ -129,8 +145,36 @@
 				path: '/current-user'
 			};
 			CurrentUser.actions = {
+				delete: CacheDeleter(CurrentUser.path, CurrentUser.identifiers),
 				save: CacheSetter(CurrentUser.path, CurrentUser.identifiers, CurrentUser.payload),
-				load: CacheGetter(CurrentUser.path, CurrentUser.identifiers)
+				load: (function () {
+					const cacheGetter = CacheGetter(CurrentUser.path, CurrentUser.identifiers);
+					return (...args) => {
+						return cacheGetter(...args)
+							.then(cachedUser => {
+								if (!cachedUser) {
+									return cachedUser;
+								}
+								return Store.User({ userId: cachedUser.shortId }).load();
+							})
+							.catch(error => {
+								if (error.code === StoreError.CODES.NOT_FOUND) {
+									return Store.CurrentUser()
+										.delete()
+										.then(() => null);
+								} else {
+									throw error;
+								}
+							})
+							.then(user => {
+								if (!user) {
+									throw new StoreError(StoreError.CODES.NOT_FOUND, 'Could not find current user.');
+								} else {
+									return user;
+								}
+							});
+					};
+				}())					
 			};
 
 			const Room = {
@@ -155,12 +199,13 @@
 			return { User, CurrentUser, Room };
 		}());
 
-		const Store = Object.keys(RESOURCES).reduce((Store, key) => {
-			const Resource = RESOURCES[key];
+		Store = Object.keys(RESOURCES).reduce((Store, key) => {
+			const resource = RESOURCES[key];
 			Store[key] = function ResourceInstance (identifiers) {
-				return Object.keys(Resource.actions).reduce((Instance, key) => {
-					const ActionHandler = Resource.actions[key];
-					Instance[key] = payload => ActionHandler(identifiers, payload);
+				return Object.keys(resource.actions).reduce((Instance, key) => {
+					const actionHandler = resource.actions[key];
+					Instance[key] = payload => Promise.resolve(payload)
+						.then(payload => actionHandler(identifiers, payload));
 					return Instance;
 				}, {});
 			};
