@@ -1,23 +1,30 @@
-# :construction: Scribbl
+# mondaysdrawing
 
-This is still very much work in progress.
+Simple drawing game
+**[:construction: Demo](https://mondaysdrawing.herokuapp.com)**
 
 ## To Do:
 
-**Client REST Library**
-* maybe just FETCH?
-* wrapper module around it
-	* endpoint abstraction
-
-**Serverside Socket Handler**
-* inspiration from pCards
-
-**Establish Socket**
-* Query params to ws://
-* test drawing sync
-
-**Drawing improvements**
-* Stroke eraser
-* Fill area
-* Clear button
-* Undo
+- [x] Client REST Library -> `/frontend/store.js`
+- [x] Client WebSocket -> `/frontend/socket.js`
+- [ ] Drawing Area Baiscs -> `/frontend/draw.js`
+	- [x] Clear
+	- [x] Undo
+	- [ ] Fill
+- [ ] Game UI
+	- [ ] Word Display + Picker
+	- [ ] Player List
+	- [ ] Chat
+- [ ] UI States -> `/frontend/states.js`
+	- [x] Basic Controls
+	- [ ] Styling
+	- [ ] Artwork?
+- [x] Server Database -> `/backend/database`
+- [x] Server Routing -> `/backend/router.js`
+- [ ] Server REST -> `/backend/controllers`
+	- [x] User Handling -> `./UserController.js`
+	- [x] Room Handling -> `./RoomController.js`
+- [x] Server WebSocket -> `/backend/logic/GameLogic.js`
+	- [ ] Refactor to `/backend/sockets.js`
+	- [ ] Chat Handling
+- [ ] Game State / Flow control -> `/backend/logic/GameLogic.js` *after refactor*
