@@ -1,4 +1,7 @@
 const { development } = require('../knexfile');
+const knex_migrate = require('knex-migrate');
 const knex = require('knex');
 
-module.exports = { knex: knex(development) };
+module.exports = {
+	migrate: async () => await knex_migrate('up', { knexfile: './backend/knexfile.js'}, ({ action, migration }) => console.log(`${action} : ${migration}`)),
+	knex: knex(development) };
