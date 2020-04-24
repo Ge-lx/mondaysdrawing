@@ -232,17 +232,17 @@
 				const canvas = canvasHolder.querySelector('canvas');
 				paper.setup(canvas);
 
-				(function fitCanvasToHolder () {
-					const refreshViewSize = () => {
-						const [width, height] = [canvasHolder.scrollWidth, canvasHolder.scrollHeight];
-						console.log('resized: ', {width, height});
-						paper.view.viewSize.width = width;
-			            paper.view.viewSize.height = height;
-					};
-			        const observer = new ResizeObserver(refreshViewSize);
-			        observer.observe(canvasHolder);
-			        refreshViewSize();
-			    }());
+				// (function fitCanvasToHolder () {
+				// 	const refreshViewSize = () => {
+				// 		const [width, height] = [canvasHolder.width, canvasHolder.height];
+				// 		console.log('resized: ', {width, height});
+				// 		paper.view.viewSize.width = width;
+			 //            paper.view.viewSize.height = height;
+				// 	};
+			 //        const observer = new ResizeObserver(refreshViewSize);
+			 //        observer.observe(canvasHolder);
+			 //        refreshViewSize();
+			 //    }());
 
 				onPaperInitialized(paper);
 			},

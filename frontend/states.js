@@ -112,9 +112,46 @@
 		};
 	});
 
-	define('state_draw', (path$, Store, SocketPath$) => {
+	define('element_user', () => {
+		const user$ = Observable({});
+		const name$ = ComputedObservable(user$, user => user.name || '');
+		return {
+			$template: `
+				<div class="element_user__holder">
+					<div class="element_user__image">
+						<img src="/images/user.png">
+					</div>
+					<p class="element_user__name" bnc-bind="name$"></p>
+				</div>
+			`,
+			$link: (scope, element) => {
+				const userExpression = element.getAttribute('user');
+				const evaluatedUser$ = Observable(scope.$get(userExpression));
+
+				const unbind = evaluatedUser$.stream(user => {
+					if (!user) {
+						user = {};
+					}
+					user$.value = user;
+				});
+				scope.onDestroy(unbind);
+			},
+			name$,
+		}
+	});
+
+	define('state_draw', (path$, Store, SocketPath$, ToolSettings, utils) => {
 		const room$ = Observable();
+		const user$ = Observable();
 		const goHome = () => resolve((state_home) => state_home.$go());
+
+		const linkToRoom$ = ComputedObservable(room$, room => {
+			if (!room) {
+				return;
+			}
+			const roomShortId = room.shortId;
+			return `${window.location.origin}/#${utils.serializeQueryParams({ room: room.shortId })}`;
+		});
 
 		return {
 			$go: (room) => path$.value = { room },
@@ -134,6 +171,7 @@
 						.Room({ userId: user.shortId, roomId: room$.value.shortId})
 						.getWebSocket();
 					
+					user$.value = user;
 					SocketPath$.value = `/ws/${socketShortId}`;
 				} catch (error) {
 					return goHome();
@@ -146,13 +184,26 @@
 				SocketPath$.value = null;
 			},
 			$template: `
+				<div id="state_draw__header">
+					<div>
+						<p>Montagsmaler</p>
+						<bnc-element name="element_user" user="user$"></bnc-element>
+					</div>
+					<div class="state_draw__room_code__holder">
+						<pre bnc-bind="linkToRoom$"></pre>
+						<div class="button" bnc-click="copyRoomLink()">COPY</div>
+					</div>
+					
+				</div>
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
-						<h3 style="font-family: 'Times New Roman'" bnc-bind="ComputedObservable(room$, room => (room || {}).shortId)"></h3>
-						<bnc-element name="ToolSettings"></bnc-element>
+						<bnc-element name="Chat"></bnc-element>
 					</div>
-					<div id="state_draw__drawing_area">
+					<div id="state_draw__drawing-area">
 						<bnc-element name="PathHandler"></bnc-element>
+						<div class="state_draw__toolbar-holder">
+							<bnc-element name="ToolSettings"></bnc-element>
+						</div>
 					</div>
 				</div>
 			`,
@@ -160,6 +211,12 @@
 
 			},
 			room$,
+			user$,
+			linkToRoom$,
+			copyRoomLink: () => {
+				navigator.clipboard.writeText(linkToRoom$.value);
+			},
+			isDrawing$: ToolSettings.isDrawing$,
 		}
 	});
 

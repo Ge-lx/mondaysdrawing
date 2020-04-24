@@ -199,7 +199,6 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 		}
 	}
 
-
 	const socket = new UserSocket(user, room);
 	userSocketsByUserShortId[user.shortId] = socket;
 	userSocketsByShortId[socket.shortId] = socket;
