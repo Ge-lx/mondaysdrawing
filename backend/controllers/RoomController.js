@@ -46,7 +46,7 @@ RoomController.updateRoom = async (req, res) => {
 
 	const updatedRoom = req.room;
 
-	for (param in updateParams) {
+	for (let param in updateParams) {
 		if (updateParams[param]) {
 			updatedRoom[param] = updateParams[param];
 		}

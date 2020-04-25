@@ -8,7 +8,7 @@ module.exports = {
 			const targetProps = Object.keys(target);
 			const output = {};
 
-			for (prop of schemaProps) {
+			for (let prop of schemaProps) {
 				const targetValue = target[prop];
 				const propSchema = schema[prop];
 				const defaultProvided = propSchema.hasOwnProperty('default');
