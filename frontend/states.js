@@ -50,17 +50,24 @@
 					model$.value = input || '';
 				});
 
-				scope.$onDestroy(() => {
-					unbindExternalModule();
-					buttonClass$.destroy();
-				});
-
-				// Act
 				const submit = () => {
 					if (bindings.input_readonly$.value !== true) {
 						bindings.input_model$.value = model$.value;
 					}
 				};
+
+				const keyDownHandler = (event) => {
+					if (event.code === 'Enter') {
+						submit();
+					}
+				};
+				
+				element.addEventListener('keydown', keyDownHandler);
+				scope.$onDestroy(() => {
+					unbindExternalModule();
+					buttonClass$.destroy();
+					element.removeEventListener('keydown', keyDownHandler);
+				});
 
 				scope.$assign({
 					...bindings,
