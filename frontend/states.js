@@ -33,16 +33,18 @@
 		return {
 			$template: `
 				<div class="element_input__holder">
-					<input type="text" bnc-attr="name: input_name, readonly: input_readonly$.value" bnc-model="model$"/>
-					<div class="element_input__button" bnc-if="showButton$" bnc-click="submit()">✔</div>
+					<input type="text" bnc-model="model$"
+						bnc-attr="name: input_name, readonly: input_readonly$.value, placeholder: input_placeholder"/>
+					<div bnc-class="buttonClass$" bnc-click="submit()" bnc-bind="input_button_text"></div>
 				</div>
 			`,
 			$link: (scope, element) => {
-				const bindings = bind(scope, element, ['input_model$', 'input_name', 'input_readonly$']);
+				const bindings = bind(scope, element, ['input_model$', 'input_name', 'input_readonly$', 'input_placeholder', 'input_button_text']);
 				console.log('bindings: ', bindings);
 				const model$ = Observable(bindings.input_model$.value);
-				const showButton$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
-					return bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
+				const buttonClass$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
+					const show = bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
+					return 'element_input__button ' + (show ? 'show' : 'hide');
 				});
 				const unbindExternalModule = bindings.input_model$.onChange(input => {
 					model$.value = input || '';
@@ -50,7 +52,7 @@
 
 				scope.$onDestroy(() => {
 					unbindExternalModule();
-					showButton$.destroy();
+					buttonClass$.destroy();
 				});
 
 				// Act
@@ -62,7 +64,7 @@
 
 				scope.$assign({
 					...bindings,
-					showButton$,
+					buttonClass$,
 					model$,
 					submit
 				});
@@ -80,7 +82,9 @@
 					<bnc-element name="element_input" class="element_user_edit__name"
 						input_model$="name$"
 						input_name="'name'"
-						input_readonly$="false">
+						input_readonly$="false"
+						input_placeholder="'Your Name'"
+						input_button_text="'CREATE'">
 					</bnc-element>
 				</div>
 			`,
