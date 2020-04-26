@@ -33,7 +33,7 @@ class Room {
 		for (let userId in this.userSocketsByUserShortId) {
 			const userSocket = this.userSocketsByUserShortId[userId];
 			const { name } = userSocket.user;
-			users[userId] = { name, isOnline: userSocket.isOnline() };
+			users[userId] = { name, isOnline: userSocket.isOnline(), ping: userSocket.ping };
 		}
 		this.broadcast({ type: MessageTypes.USERS, users });
 	}
@@ -118,6 +118,7 @@ class UserSocket {
 			if (this.alive === false) {
 				return this.closeWebSocket(true);	
 			} else {
+				this.lastPingSentAt = Date.now();
 				this.socket.send('ping');
 				this.alive = false;
 			}
@@ -133,10 +134,13 @@ class UserSocket {
 
 	connectWebSocket (ws) {
 		this.socket = ws;
+		this.alive = true;
 		ws.onmessage = (message) => {
 			this.alive = true;
-
 			if (message.data === 'pong') {
+				if (this.lastPingSentAt) {
+					this.ping = Date.now() - this.lastPingSentAt;
+				}
 				return;
 			} 
 			const isMessage = typeof message.data === 'string';
@@ -171,6 +175,12 @@ class UserSocket {
 	}, 5000);
 }());
 
+(function broadcastUsersInRooms () {
+	setInterval(() => {
+		Object.values(roomMap).forEach(room => room.broadcastUsers());
+	}, 8000);
+}());
+
 GameLogic.connectWebSocket = (socketShortId, ws) => {
 	const mappedUserSocket = userSocketsByShortId[socketShortId];
 	if (mappedUserSocket !== undefined) {
@@ -189,7 +199,9 @@ GameLogic.registerNewSocket = (user, roomConfig) => {
 
 	const existingSocketForUser = userSocketsByUserShortId[user.shortId];
 	if (existingSocketForUser !== undefined) {
-		existingSocketForUser.closeWebSocket();
+		if (existingSocketForUser.isOnline()) {
+			existingSocketForUser.closeWebSocket();
+		}
 
 		if (existingSocketForUser.room.config.shortId === roomConfig.shortId) {
 			return existingSocketForUser.shortId;
