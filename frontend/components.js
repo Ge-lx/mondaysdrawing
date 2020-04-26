@@ -44,7 +44,7 @@
 				});
 				const buttonClass$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
 					const show = bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
-					return 'element_input__button ' + (show ? 'show' : 'hide');
+					return 'element_input__button' + (show ? '' : ' hide');
 				});
 
 				scope.$onDestroy(() => {
@@ -144,7 +144,11 @@
 					async (name, avatar) => {
 						const currentUser = bindings.user$.value || { name: '' };
 
-						if (name && name !== currentUser.name /* && checkAvatar() */) {
+						// Name cannot be empty
+						if (!name) {
+							name$.value = currentUser.name;
+						}
+						if (name !== currentUser.name /* && checkAvatar() */) {
 							const updatedUser = await submit();
 							bindings.user$.value = updatedUser;
 						}
@@ -162,9 +166,7 @@
 		};
 	}]);
 
-	define('element_user', [{ noCache: true }, () => {
-		const user$ = Observable({});
-		const name$ = ComputedObservable(user$, user => user.name || '');
+	define('element_user', [{ noCache: true }, (bind) => {
 		return {
 			$template: `
 				<div class="element_user__holder">
@@ -175,18 +177,51 @@
 				</div>
 			`,
 			$link: (scope, element) => {
-				const userExpression = element.getAttribute('user');
-				const evaluatedUser$ = Observable(scope.$get(userExpression));
-
-				const unbind = evaluatedUser$.stream(user => {
-					if (!user) {
-						user = {};
-					}
-					user$.value = user;
+				const { user$ } = bind(scope, element, ['user$']);
+				const name$ = ComputedObservable(user$, user => {
+					return user ? (user.name || '<no name>') : '<no user>';
 				});
-				scope.$onDestroy(unbind);
+
+				scope.$onDestroy(name$.destroy);
+				scope.$assign({ name$ });
 			},
-			name$,
 		}
 	}]);
+
+	define('element_user_list', (Socket, MessageTypes, utils) => {
+		const users$ = Observable({});
+
+		Socket.addMessageListener(data => {
+			if (data.type === MessageTypes.USERS) {
+				console.log('users: ', data.users);
+				users$.value = data.users;
+			}
+		});
+
+		return {
+			$template: `
+				<div class="panel inline">
+					<div class="panel__header">
+						<h3 bnc-bind="roomLink$"><h3>
+					</div>
+					<div class="panel__section" bnc-for="userId, user of users$">
+						<bnc-element name="element_user" bnc-attr="userId: userId" user$="user"></bnc-element>
+					</div>
+				</div>
+			`,
+			$link: (scope, element) => {
+				const roomLink$ = ComputedObservable(scope.$get$('room$'), room => {
+					if (!room) {
+						return '<no room>';
+					}
+					const roomShortId = room.shortId;
+					return `${window.location.origin}/#${utils.serializeQueryParams({ room: room.shortId })}`;
+				});
+
+				scope.$onDestroy(roomLink$.destroy);
+				scope.$assign({ roomLink$ });
+			},
+			users$,
+		}
+	})
 }(bnc_bunch));

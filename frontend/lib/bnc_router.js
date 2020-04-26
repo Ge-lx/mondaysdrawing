@@ -36,14 +36,18 @@
 					} else if (matchingStates.length < 1) {
 						console.error('No state matched ', { path });
 					} else {
+						const newState = matchingStates[0];
 						const oldState = currentState$.value;
+						if (newState === oldState) {
+							return;
+						}
 						if (oldState && typeof oldState.$onLeave === 'function') {
 							oldState.$onLeave();
 						}
 						if (typeof matchingStates[0].$onEnter === 'function') {
 							matchingStates[0].$onEnter();
 						}
-						currentState$.value = matchingStates[0];
+						currentState$.value = newState;
 					}
 				});
 

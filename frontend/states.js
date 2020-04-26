@@ -89,8 +89,8 @@
 			});
 			resolve((state_draw) => state_draw.$go(room.shortId));
 		};
-		const currentRoomId$ = Observable('');
-		currentRoomId$.onChange(roomId => {
+		const roomIdToJoin$ = Observable('');
+		roomIdToJoin$.onChange(roomId => {
 			if (roomId) {
 				resolve((state_draw) => state_draw.$go(roomId));
 			}
@@ -132,7 +132,7 @@
 						<div class="panel__row">
 							<h3>or enter a room ID</h3>
 							<bnc-element name="element_input"
-								input_model$="currentRoomId$"
+								input_model$="roomIdToJoin$"
 								input_name="'room_id'"
 								input_readonly$="false"
 								input_placeholder="'Room ID'"
@@ -144,7 +144,7 @@
 			`,
 			currentUser$,
 			LANGUAGES,
-			currentRoomId$: Observable(''),
+			roomIdToJoin$: Observable(''),
 			language$,
 			drawTime$,
 			createRoom,
@@ -207,6 +207,7 @@
 				</div>
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
+						<bnc-element name="element_user_list"></bnc-element>
 						<!--<bnc-element name="Chat"></bnc-element>-->
 					</div>
 					<div id="state_draw__drawing-area">
