@@ -197,15 +197,16 @@
 				users$.value = data.users;
 			}
 		});
-
 		return {
 			$template: `
 				<div class="panel inline">
 					<div class="panel__header">
-						<h3 bnc-bind="roomLink$"><h3>
+						<h3 bnc-bind="roomLink$"></h3>
 					</div>
 					<div class="panel__section" bnc-for="userId, user of users$">
-						<bnc-element name="element_user" bnc-attr="userId: userId" user$="user"></bnc-element>
+						<div>
+							<bnc-element name="element_user" bnc-attr="userId: userId" user$="user"></bnc-element>
+						</div>
 					</div>
 				</div>
 			`,

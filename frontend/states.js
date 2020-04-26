@@ -153,7 +153,6 @@
 
 	define('state_draw', (path$, Store, SocketPath$, ToolSettings, utils) => {
 		const room$ = Observable();
-		const user$ = Observable();
 		const goHome = () => resolve((state_home) => state_home.$go());
 
 		const linkToRoom$ = ComputedObservable(room$, room => {
@@ -182,7 +181,6 @@
 						.Room({ userId: user.shortId, roomId: room$.value.shortId})
 						.getWebSocket();
 					
-					user$.value = user;
 					SocketPath$.value = `/ws/${socketShortId}`;
 				} catch (error) {
 					return goHome();
@@ -222,7 +220,6 @@
 
 			},
 			room$,
-			user$,
 			linkToRoom$,
 			copyRoomLink: () => {
 				navigator.clipboard.writeText(linkToRoom$.value);
