@@ -49,6 +49,24 @@
 				flex-direction: column;
 			}
 
+
+			.checkbox {
+				width: 16px;
+				height: 16px;
+				border-radius: 8px;
+				border: 1px solid #4d4d4d;
+				
+			}
+			.checkbox.selected {
+				background-color: #4d4d4d;
+			}
+
+			.clickable {
+				transition: background-color 0.1s ease-out;
+			}
+			.clickable:hover, .clickable:focus {
+				background-color: rgb(240, 240, 240);
+			}
 			/* PANELS */
 			.panel {
 				width: 100%;
@@ -155,6 +173,30 @@
 			}
 
 
+			/* CHOICE */
+			.element_choice__holder {
+				border: 2px solid #4d4d4d;
+				overflow: hidden;
+				border-radius: 18px;
+				max-width: 200px;
+				background: #fff;
+			}
+			.element_choice__choice {
+				display: flex;
+				flex-flow: row nowrap;
+				align-items: center;
+				padding: 2px 8px;
+				cursor: pointer;
+			}
+			.element_choice__choice:first-of-type {
+				padding-top: 5px;
+			}
+			.element_choice__choice:last-of-type {
+				padding-bottom: 5px;
+			}
+			.element_choice__choice > .checkbox {
+				margin-right: 5px;
+			}
 
 			#state_draw__header {
 				top: 0px;

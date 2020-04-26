@@ -79,6 +79,43 @@
 		};
 	}]);
 
+	define('element_choice', [{ noCache: true }, (bind) => {
+		return {
+			$template: `
+				<div class="element_choice__holder" bnc-for="choice in choices$">
+					<div class="element_choice__choice clickable" bnc-click="selected$.value = choice">
+						<div bnc-class="choiceClass_$(choice[choice_key])"></div>
+						<div bnc-bind="choice[choice_name]"></div>
+					</div>
+				</div>
+			`,
+			$link: (scope, element) => {
+				const bindings = bind(scope, element, ['choices$', 'selected$', 'choice_name', 'choice_key']);
+
+				const choiceClassObservableMap = bindings.choices$.value.reduce((acc, curr) => {
+					const thisChoiceKey = curr[bindings.choice_key];
+					acc[thisChoiceKey] = ComputedObservable(bindings.selected$, selectedChoice => {
+						return 'checkbox' + (selectedChoice[bindings.choice_key] === thisChoiceKey ? ' selected' : '');
+					});
+					return acc;
+				}, {});
+
+				// This prevents a memory leak, I think. Maybe the references are deleted though **hmm*
+				scope.$onDestroy(() => {
+					for (let observable of choiceClassObservableMap) {
+						observable.destroy();
+					}
+				});
+
+				const choiceClass_$ = (choiceKey) => {
+					return choiceClassObservableMap[choiceKey];
+				};
+
+				scope.$assign({ ...bindings, choiceClass_$ });
+			}
+		};
+	}]);
+
 	define('element_user_edit', [{ noCache: true }, (Store, bind) => {
 		return {
 			$template: `
