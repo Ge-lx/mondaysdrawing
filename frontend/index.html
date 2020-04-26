@@ -41,6 +41,11 @@
 				height: 100%;
 			}
 
+			bnc-root {
+				display: block;
+				height: 100%;
+			}
+
 			bnc-element[name="bnc_router"] > bnc-state {
 				height: 100%;
 				width: 100%;
@@ -49,6 +54,34 @@
 				flex-direction: column;
 			}
 
+			input, input:focus {
+				outline: none;
+				padding: 5px 10px;
+				border: 2px solid #4d4d4d;
+				border-radius: 18px;
+				max-width: 200px;
+				background: #fff;
+			}
+
+			button {
+				background-color: #fee08b;
+				border: 2px solid #4b4b4b;
+				color: #4b4b4b;
+				min-width: 80px;
+				font-size: 18px;
+				border-radius: 18px;
+				padding: 3px 10px;
+				box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.42);
+				cursor: pointer;
+				transition: box-shadow 0.15s ease-out;
+			}
+			.highlighted button {
+				background-color: #4b4b4b;
+				color: white;
+			}
+			button:hover {
+				box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.42);
+			}
 
 			.checkbox {
 				width: 16px;
@@ -67,10 +100,13 @@
 			.clickable:hover, .clickable:focus {
 				background-color: rgb(240, 240, 240);
 			}
+
 			/* PANELS */
 			.panel {
 				width: 100%;
 				height: 100%;
+				display: flex;
+				flex-flow: column nowrap;
 			}
 			@media only screen and (min-width: 600px) {
 				.panel {
@@ -85,35 +121,65 @@
 					margin-top: 20px;
 				}
 			}
-
 			.panel__header {
 				padding: 6px 20px;
 				background-color: #4d4d4d;
 				color: #fee08b;
 			}
+			.panel.big > .panel__header {
+				padding: 10px 20px;
+				font-size: 20px
+			}
 			.panel__header > h2 {
 				margin: 0;
 				font-weight: bold;
 			}
-
 			.panel__section {
-				padding: 20px;
+				padding: 0px 20px;
 				border-bottom: 2px solid #4d4d4d;
+				display: flex;
+				flex-flow: column nowrap;
+				box-shadow: 0px 0px 4px 1px inset rgba(0, 0, 0, 0.22);
+			}
+			.panel__section:nth-of-type(2) {
+				box-shadow: 0px 1px 3px 0px inset rgba(0, 0, 0, 0.42);
 			}
 			.panel__section:last-of-type {
 				border: none;
-			}
+				flex-grow: 1;
+			}	
 			.panel__section.highlighted {
 				background-color: #fee08b;
-				box-shadow: 0px 0px 7px 1px inset rgba(0, 0, 0, 0.42);
 			}
 			.panel__section > h3 {
-				margin: 0px;
-				font-size: 16px;
+				margin: 15px 0px;
+				font-size: 20px;
 				color: #1a1a1a;
+				text-align: center;
 			}
 			.panel__section > p {
 				padding: 0;
+			}
+			.panel__row {
+				display: flex;
+				flex-direction: row wrap;
+				justify-content: space-between;
+				align-items: center;
+				padding: 10px 5px;
+				border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+			}
+			.panel__row:last-of-type {
+				border-bottom: none;
+			}
+			.panel__row > .grow {
+				flex-grow: 1;
+			}
+			.panel__row > .start {
+				align-self: flex-start;
+			}
+			.panel__row > p {
+				font-weight: bolder;
+				margin: 0px;
 			}
 
 			/* USER */
@@ -134,18 +200,11 @@
 			.element_input__holder {
 				position: relative;
 				border-radius: 18px;
-				margin: 10px;
+				width: min-content;
 				overflow: hidden;
 			}
 			.element_input__holder > input {
-				transition: all 0.2s ease-out;
-				outline: none;
 				padding: 5px 35px 5px 10px;
-				border: 2px solid #4d4d4d;
-				border-radius: 18px;
-				background: rgba(0, 0, 0, 0);
-			}
-			.element_input__holder > input:focus {
 			}
 			.element_input__button {
 				cursor: pointer;
@@ -160,7 +219,7 @@
 				top: 0px;
 				bottom: 0px;
 				right: 0px;
-				transition: right 0.2s ease-out;
+				transition: right 0.25s ease-in-out;
 			}
 			.element_input__button.hide {
 				right: -100%;
@@ -198,6 +257,13 @@
 				margin-right: 5px;
 			}
 
+			/* HOME */
+			.state_home__button_go {
+				min-width: 200px;
+				margin: auto;
+			}
+
+			/* DRAW */
 			#state_draw__header {
 				top: 0px;
 				background: red;
@@ -281,27 +347,6 @@
 				border-radius: 100%;
 				width: 25px;
 				height: 25px;
-			}
-
-			bnc-root {
-				display: block;
-				height: 100%;
-			}
-
-			#state_home__holder {
-				display: flex;
-				margin: auto;
-				flex-flow: column nowrap;
-			}
-
-			#state_home__logo {
-				
-			}
-
-			#state_home__popup {
-				min-height: 400px;
-				background-color: rgba(0, 0, 0, 0.5);
-				padding: 40px;
 			}
 
 		</style>

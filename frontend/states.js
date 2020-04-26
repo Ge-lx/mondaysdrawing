@@ -25,7 +25,10 @@
 			currentUser$.value = null;
 		}
 
-		currentUser$.onChange(newUser => Store.CurrentUser().save(newUser));
+		currentUser$.onChange(newUser => {
+			Store.CurrentUser().save(newUser);
+			return newUser;
+		});
 		return currentUser$;
 	});
 
@@ -33,36 +36,35 @@
 		return {
 			$template: `
 				<div class="element_input__holder">
-					<input type="text" bnc-model="model$"
+					<input class="clickable" type="text" bnc-model="model$"
 						bnc-attr="name: input_name, readonly: input_readonly$.value, placeholder: input_placeholder"/>
 					<div bnc-class="buttonClass$" bnc-click="submit()" bnc-bind="input_button_text"></div>
 				</div>
 			`,
 			$link: (scope, element) => {
 				const bindings = bind(scope, element, ['input_model$', 'input_name', 'input_readonly$', 'input_placeholder', 'input_button_text']);
-				console.log('bindings: ', bindings);
+				
 				const model$ = Observable(bindings.input_model$.value);
-				const buttonClass$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
-					const show = bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
-					return 'element_input__button ' + (show ? 'show' : 'hide');
-				});
-				const unbindExternalModule = bindings.input_model$.onChange(input => {
-					model$.value = input || '';
-				});
-
 				const submit = () => {
 					if (bindings.input_readonly$.value !== true) {
 						bindings.input_model$.value = model$.value;
 					}
 				};
-
 				const keyDownHandler = (event) => {
 					if (event.code === 'Enter') {
 						submit();
 					}
 				};
-				
+
 				element.addEventListener('keydown', keyDownHandler);
+				const unbindExternalModule = bindings.input_model$.onChange(input => {
+					model$.value = input || '';
+				});
+				const buttonClass$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
+					const show = bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
+					return 'element_input__button ' + (show ? 'show' : 'hide');
+				});
+
 				scope.$onDestroy(() => {
 					unbindExternalModule();
 					buttonClass$.destroy();
@@ -128,17 +130,15 @@
 						input_name="'name'"
 						input_readonly$="false"
 						input_placeholder="'Your Name'"
-						input_button_text="'CREATE'">
+						input_button_text="user_is_create ? 'CREATE' : 'UPADTE'">
 					</bnc-element>
 				</div>
 			`,
 			$link: (scope, element) => {
 				const bindings = bind(scope, element, ['user$', 'user_is_create']);
-				console.log('bindings: ', bindings)
 
 				const name$ = Observable((bindings.user$.value || {}).name || '');
 				const avatar$ = Observable((bindings.user$.value || {}) || 0x000);
-
 				const submit = async () => {
 					const user = {
 						name: name$.value,
@@ -152,7 +152,6 @@
 					}
 				};
 
-				// React
 				const unbindFromExternalUser = bindings.user$.onChange(user => {
 					name$.value = user.name;
 					avatar$.value = user.avatar;
@@ -172,6 +171,8 @@
 				scope.$onDestroy(() => {
 					unbindFromExternalUser();
 					destroyUpdateListener();
+					name$.destroy();
+					avatar$.destroy();
 				});		
 
 				scope.$assign({ ...bindings, name$, avatar$ });
@@ -191,13 +192,13 @@
 				}
 			},
 			$template: `
-				<div id="state_login__holder" class="panel">
+				<div id="state_login__holder" class="panel big">
 					<div class="panel__header">
 						<h2>Montagsmaler</h2>
 					</div>
 					<div class="panel__section highlighted">
 						<h3>Welcome</h3>
-						<div class="state_home__welcome">
+						<div class="panel__row">
 							<p>
 								Simple, online 'Montagsmaler' - Mobile and Desktop
 								<br>
@@ -206,8 +207,7 @@
 						</div>
 					</div>
 					<div class="panel__section">
-						<h3Your name</h3>
-						<div class="state_login__create_user">
+						<div class="panel__row">
 							<bnc-element name="element_user_edit" user_is_create="true" user$="currentUser$">
 						</div>
 					</div>
@@ -237,96 +237,80 @@
 	});
 
 	define('state_home', (path$, Store, currentUser$) => {
-		const currentName$ = ComputedObservable(currentUser$, user => (user || { name: '' }).name);
-
-		const createUser = async () => {
-			const user = await Store.User().create({ name: currentName$.value });
-			currentUser$.value = user;
-		};
-
 		const drawTime$ = Observable(60);
-		const language$ = Observable('en');
 		const LANGUAGES = [
 			{ name: 'English', key: 'en' },
-			{ name: 'Deutsch', key: 'de' }
+			{ name: 'German', key: 'de' },
+			{ name: 'Spanish', key: 'es' },
+			{ name: 'French', key: 'fr' },
 		];
+		const language$ = Observable(LANGUAGES[0]);
 		const createRoom = async () => {
 			const room = await Store.Room().create({
-				drawTime: drawTime$.value,
-				language: language$.value
+				drawTime: parseInt(drawTime$.value),
+				language: language$.value.key,
 			});
-			joinRoom(room.shortId);
+			resolve((state_draw) => state_draw.$go(room.shortId));
 		};
-
-		const joinRoom = (roomId) => {
-			resolve((state_draw) => state_draw.$go(roomId));
-		};
+		const currentRoomId$ = Observable('');
+		currentRoomId$.onChange(roomId => {
+			if (roomId) {
+				resolve((state_draw) => state_draw.$go(roomId));
+			}
+		});
 
 		return {
 			$go: () => path$.value = {},
 			$when: path => Object.keys(path).length === 0,
 			$onEnter: () => {},
 			$template: `
-				<div id="state_home__popup" class="panel">
+				<div class="panel big">
 					<div class="panel__header">
 						<h2>Montagsmaler</h2>
 					</div>
-					<div class="panel__section highlighted">
-						<h3>Welcome</h3>
-						<div class="state_home__welcome">
-							<p>
-								Simple, online 'Montagsmaler' - Mobile and Desktop
-								<br>
-								To join a room, you need to choose your username.
-							</p>
-						</div>
+
+					<div class="panel__section">
+						<bnc-element class="panel__row" name="element_user_edit" user_is_create="false" user$="currentUser$">
 					</div>
-					<div class="panel__section"
-					<div class="state_home_panel">
-						<div class="state_home__create_user" bnc-if-not="currentUser$">
-							<h3>Create User</h3>
-							<input placeholder="Your name" type="name" bnc-model="currentName$"/>
-							<button bnc-click="createUser()">Create</button>
+
+					<div class="panel__section highlighted">
+						<h3>Create a new room</h3>
+						<div class="panel__row">
+							<p>Time to draw</p>
+							<input class="clickable" placeholder=60 type="number" min="1" max="3600" bnc-model="drawTime$"/>
+						</div>
+
+						<div class="panel__row">
+							<p class="start">Language</p>
+							<bnc-element name="element_choice" choices$="LANGUAGES" selected$="language$" choice_name="'name'" choice_key="'key'">
+							</bnc-element>
 						</div>
 						
-						<div class="state_home__change_user" bnc-if="currentUser$">
-							<input placeholder="Your name cannot be empty" type="name" bnc-model="currentName$"/>
-							<button bnc-click="updateUser()">Save</button>
+						<div class="panel__row">
+							<button class="state_home__button_go" bnc-click="createRoom()">GO</button>
 						</div>
 					</div>
-					<div class="state_home_panel" bnc-if="currentUser$">
-						<div class="state_home__join_room">
-							<h3>Join a room by entering its ID below</h3>
-							<input placeholder"ID" type="text" name="roomId" bnc-model="currentRoomId$"/>
-							<button bnc-click="joinRoom(currentRoomId$.value)">Join</button>
 
-						</div>
-						<div class="state_home__create_room">
-							<h3>Or create your own room</h3>
-							<input placeholder=60 type="number" min="1" max="3600" bnc-model="drawTime$"/>
-							<div class="state_home__create_room__languages" bnc-for="lang in LANGUAGES">
-								<div class="state_home__create_room__language"
-									bnc-class="ComputedObservable(language$, key => lang.key === key ?
-										'state_home__create_room__language selected' :
-										'state_home__create_room__language')"
-									bnc-click="language$.value = lang.key"
-									bnc-bind="lang.name">
-								</div>
-							</div>
-							<button bnc-click="createRoom()">Create</button>
+					<div class="panel__section">
+						<div class="panel__row">
+							<h3>or enter a room ID</h3>
+							<bnc-element name="element_input"
+								input_model$="currentRoomId$"
+								input_name="'room_id'"
+								input_readonly$="false"
+								input_placeholder="'Room ID'"
+								input_button_text="'JOIN'">
+							</bnc-element>
 						</div>
 					</div>
 				</div>
 			`,
-			currentName$,
 			currentUser$,
-			createUser,
 			LANGUAGES,
 			currentRoomId$: Observable(''),
 			language$,
 			drawTime$,
 			createRoom,
-			joinRoom,
 		};
 	});
 
@@ -405,7 +389,6 @@
 				<div id="state_draw__header">
 					<div>
 						<p>Montagsmaler</p>
-						<bnc-element name="element_user" user="user$"></bnc-element>
 					</div>
 					<div class="state_draw__room_code__holder">
 						<pre bnc-bind="linkToRoom$"></pre>
