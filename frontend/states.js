@@ -144,7 +144,7 @@
 			`,
 			currentUser$,
 			LANGUAGES,
-			roomIdToJoin$: Observable(''),
+			roomIdToJoin$,
 			language$,
 			drawTime$,
 			createRoom,

@@ -65,7 +65,7 @@
 			if (reason === 'UNKNOWN') {
 				console.info('Socket expired.');
 				// Reloading the state gets new socket for current room and user
-				resolve((path$) => path$.trigger());
+				resolve((state_draw) => state_draw.$onEnter());
 			}
 			const socket = socket$.value;
 			if (socket) {
