@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>iPhone Debug</title>
+		<meta name="author" content="gelx">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="theme-color" content="rgb(51, 51, 51)">
+		<link rel="manifest" href="/manifest.json">
+
+		<link href="https://fonts.googleapis.com/css?family=Quicksand:300,400,600&display=swap&subset=latin-ext" rel="stylesheet">
+
+		<script type="text/javascript" src="https://unpkg.com/paper@0.12.4/dist/paper-core.js"></script>
+		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bunch.js"></script>
+		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bnc.js"></script>
+		<!-- <script type="text/javascript" src="lib/bnc_router.js"></script>
+		<script type="text/javascript" src="utils.js"></script>
+		<script type="text/javascript" src="store.js"></script>
+		<script type="text/javascript" src="socket.js"></script>
+		<script type="text/javascript" src="draw.js"></script>
+		<script type="text/javascript" src="components.js"></script>
+		<script type="text/javascript" src="states.js"></script> -->
+		<script type="text/javascript">
+			(function ({ define, resolve, Observable, ComputedObservable }) {
+				define('element_debug', [{ noCache: true }, () => {
+					return {
+						$template: `<div><h1 bnc-template>This works and it is now \${now$} ms after 01/01/1970<h1></div>`,
+						$link: (scope, element) => {
+							const now$ = Observable(Date.now());
+							setInterval(() => now$.value = Date.now(), 1000);
+							scope.$assign({ now$ });
+						}
+					};
+				}]);
+			}(bnc_bunch));
+		</script>
+	</head>
+	<body>
+		<bnc-root>
+			<bnc-element name="element_debug"></bnc-element>
+		</bnc-root>
+	</body>
+</html>
