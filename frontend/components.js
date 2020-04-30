@@ -24,7 +24,7 @@
 				</div>
 			`,
 			$link: (scope, element) => {
-				const bindings = bind(scope, element, ['input_model$', 'input_name', 'input_readonly$', 'input_placeholder', 'input_button_text']);
+				const bindings = bind(scope, element, ['input_model$', 'input_name', 'input_readonly$', 'input_placeholder', 'input_button_text', 'input_show_button']);
 				
 				const model$ = Observable(bindings.input_model$.value);
 				const submit = () => {
@@ -38,12 +38,24 @@
 					}
 				};
 
+				const shouldShowButton = (function () {
+					switch (bindings.input_show_button || 'CHANGED') {
+						case 'NON_EMPTY':
+							return (model, external) => model !== '';
+						case 'CHANGED': // fall through
+						default:
+							return (model, external) => model !== external;
+					}
+				}());
+
 				element.addEventListener('keydown', keyDownHandler);
 				const unbindExternalModule = bindings.input_model$.onChange(input => {
 					model$.value = input || '';
 				});
 				const buttonClass$ = ComputedObservable([bindings.input_readonly$, model$], (readonly, model) => {
-					const show = bindings.input_readonly$.value !== true && model !== bindings.input_model$.value;
+					const externalValue = bindings.input_model$.value;
+					const canEdit = bindings.input_readonly$.value !== true;
+					const show = canEdit && shouldShowButton(model, externalValue);
 					return 'element_input__button' + (show ? '' : ' hide');
 				});
 

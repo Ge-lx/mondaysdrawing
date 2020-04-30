@@ -136,7 +136,8 @@
 								input_name="'room_id'"
 								input_readonly$="false"
 								input_placeholder="'Room ID'"
-								input_button_text="'JOIN'">
+								input_button_text="'JOIN'"
+								input_show_button="'NON_EMPTY'">
 							</bnc-element>
 						</div>
 					</div>
@@ -206,7 +207,7 @@
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
 						<bnc-element name="element_user_list"></bnc-element>
-						<!--<bnc-element name="Chat"></bnc-element>-->
+						<bnc-element name="element_chat"></bnc-element>
 					</div>
 					<div id="state_draw__drawing-area">
 						<bnc-element name="PathHandler"></bnc-element>
