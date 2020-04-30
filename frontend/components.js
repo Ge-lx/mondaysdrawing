@@ -178,14 +178,15 @@
 		};
 	}]);
 
-	define('element_user', [{ noCache: true }, (bind) => {
+	define('element_user', [{ noCache: true }, (bind, currentUser$) => {
 		return {
 			$template: `
-				<div class="element_user__holder">
+				<div bnc-class="'element_user__holder' + (isMe ? ' me' : '')">
 					<div class="element_user__image">
 						<img src="/images/user.png">
 					</div>
 					<p class="element_user__name" bnc-bind="name$"></p>
+					<p class="element_user__ping" bnc-bind="status$"></p>
 				</div>
 			`,
 			$link: (scope, element) => {
@@ -193,22 +194,44 @@
 				const name$ = ComputedObservable(user$, user => {
 					return user ? (user.name || '<no name>') : '<no user>';
 				});
+				const status$ = ComputedObservable(user$, user => {
+					if (!user) {
+						return '?'
+					}
+					if (user.isOnline) {
+						const ping = user.ping || 0;
+						return `${ping} ms`;
+					} else {
+						return 'offline';
+					}
+				});
 
-				scope.$onDestroy(name$.destroy);
-				scope.$assign({ name$ });
+				scope.$onDestroy(() => {
+					name$.destroy();
+					status$.destroy();
+				});
+				scope.$assign({
+					name$, status$,
+					isMe: user$.value.shortId === currentUser$.value.shortId
+				});
 			},
-		}
+		};
 	}]);
 
-	define('element_user_list', (Socket, MessageTypes, utils) => {
+	define('users', (Socket, MessageTypes) => {
 		const users$ = Observable({});
-
 		Socket.addMessageListener(data => {
 			if (data.type === MessageTypes.USERS) {
-				console.log('users: ', data.users);
-				users$.value = data.users;
+				const users = data.users;
+				for (let shortId in users) {
+					users[shortId].shortId = shortId;
+				}
+				users$.value = users;
 			}
 		});
+		return users$;
+	});
+	define('element_user_list', (Socket, MessageTypes, utils, users$) => {
 		return {
 			$template: `
 				<div class="panel inline">
@@ -216,7 +239,7 @@
 						<h3 bnc-bind="roomLink$"></h3>
 					</div>
 					<div class="panel__section" bnc-for="userId, user of users$">
-						<div>
+						<div class="panel__row">
 							<bnc-element name="element_user" bnc-attr="userId: userId" user$="user"></bnc-element>
 						</div>
 					</div>
@@ -235,6 +258,77 @@
 				scope.$assign({ roomLink$ });
 			},
 			users$,
-		}
-	})
+		};
+	});
+
+	define('element_chat', (Socket, MessageTypes, utils, users$) => {
+		// We dont use bnc-elements for individual messages for performance reasons
+		const messageLog = (function () {
+			let messageContainer = null;
+
+			const getMesageHTML = ({ name, isSystem, message }) => `
+				<div class="element_chat__message${isSystem ? ' system' : ''}">
+					<p>${name || ''}</p>
+					<p class="message">${utils.escapeHTML(message)}</p>
+				</div>
+			`;
+
+			const addMessage = ({ name, isSystem = false, message }) => {
+				if (messageContainer) {
+					const messageHTML = getMesageHTML({ name, isSystem, message });
+					messageContainer.insertAdjacentHTML('beforeend', messageHTML);
+				} else {
+					console.error('Message container is not ready!');
+				}
+			};
+
+			return {
+				linkMessageContainer: (element) => messageContainer = element,
+				addMessage
+			};
+		}());
+
+		Socket.addMessageListener(data => {
+			if (data.type === MessageTypes.CHAT) {
+				const user = users$.value[data.userId] || { name: 'Info' };
+				messageLog.addMessage({ name: user.name, message: data.message, isSystem: false });
+			}
+		});
+
+		const chatInput$ = Observable('');
+		chatInput$.onChange(chatInput => {
+			if (!chatInput) {
+				return;
+			}
+			Socket.send({
+				type: MessageTypes.CHAT,
+				message: chatInput,
+			});
+			return '';
+		});
+
+		return {
+			$template: `
+				<div class="panel inline element_chat">
+					<div class="panel__header">
+						<h3>Chat</h3>
+					</div>
+					<div class="panel__section element_chat__messages">
+					</div>
+					<div class="panel__section highlighted">
+						<bnc-element class="panel__row"
+							name="element_input"
+							input_model$="chatInput$"
+							input_button_text="'SEND'"
+							input_show_button="'NON_EMPTY'"
+						></bnc-element>
+					</div>
+				</div>
+			`,
+			$link: (scope, element) => {
+				messageLog.linkMessageContainer(element.querySelector('.element_chat__messages'));
+			},
+			chatInput$
+		};
+	});
 }(bnc_bunch));

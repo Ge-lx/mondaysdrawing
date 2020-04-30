@@ -16,6 +16,11 @@
 					return obj;
 				}, {});
 			},
+			escapeHTML: (unsafe) => {
+				const container = document.createElement('div');
+				container.append(document.createTextNode(unsafe));
+				return container.innerHTML;
+			},
 			validate: (target, schema) => {
 				const checkSchema = (target = {}, schema) => {
 					const schemaProps = Object.keys(schema);

@@ -131,6 +131,13 @@
 				padding: 10px 20px;
 				font-size: 20px
 			}
+			.panel.inline > .panel__header {
+				padding: 5px 10px;
+			}
+			.panel.inline > .panel__header > h3 {
+				font-size: 16px;
+				margin: 0;
+			}
 			.panel__header > h2 {
 				margin: 0;
 				font-weight: bold;
@@ -163,7 +170,7 @@
 			}
 			.panel__row {
 				display: flex;
-				flex-direction: row wrap;
+				flex-flow: row wrap;
 				justify-content: space-between;
 				align-items: center;
 				padding: 10px 5px;
@@ -187,14 +194,33 @@
 			.element_user__holder {
 				display: flex;
 				flex-flow: row wrap;
-				justify-content: center;
+				justify-content: space-between;
 				align-items: center;
+				width: 100%;
 			}
 			.element_user_edit__image > img{
 				height: 150px;
 			}
-			.element_user_edit__name {
+			.element_user_edit__name {  }
+
+			/* USER DISPLAY (also uses __holder) */
+			bnc-element[name="element_user"] {
+				width: 100%;
 			}
+			bnc-element[name="element_user"] p {
+				margin: 0 0 0 5px;
+			}
+			.element_user__holder.me {
+				color: #3288bd;
+			}
+			.element_user__image > img {
+				height: 20px;
+			}
+			.element_user__name {
+				flex-grow: 1;
+				font-weight: bolder;
+			}
+			.element_user__status {  }
 
 
 			/* INPUT */
@@ -258,6 +284,14 @@
 				margin-right: 5px;
 			}
 
+			.element_chat .element_input__holder {
+				width: 100%;
+			}
+			.element_chat input {
+				max-width: unset;
+				width: 100%;
+			}
+
 			/* HOME */
 			.state_home__button_go {
 				min-width: 200px;
@@ -300,16 +334,16 @@
 			}
 
 			#canvas_holder {
-				position: absolute;
+				/*position: absolute;
 				top: 0;
 				left: 0;
 				bottom: 0;
-				right: 0;
+				right: 0;*/
 			}
 
 			canvas {
-				width: 100%;
-				height: 100%;
+				/*width: 100%;*/
+				/*height: 100%;*/
 			}
 
 			#tool_settings {

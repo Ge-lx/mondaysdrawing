@@ -27,7 +27,7 @@
 			return {
 				alive: () => {
 					clearTimeout(timeout);
-					timeout = setTimeout(closeSocket, maxDeadTime);
+					timeout = setTimeout(() => closeSocket({ reason: 'ABANDONED' }), maxDeadTime);
 				},
 				restart: () => {
 					clearTimeout(timeout);
@@ -104,7 +104,7 @@
 
 		socketUrl$.stream(socketUrl => {
 			if (socketUrl === null) {
-				closeSocket();
+				closeSocket({ reason: 'EXIT' });
 			} else {
 				openSocket();
 			}

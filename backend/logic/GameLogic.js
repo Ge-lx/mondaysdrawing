@@ -69,7 +69,7 @@ class Room {
 
 			switch (data.type) {
 				case MessageTypes.CHAT:
-					this.broadcast({ ...data, userId: userShortId }, userShortId);
+					this.broadcast({ ...data, userId: userShortId });
 			}
 		});
 
