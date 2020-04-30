@@ -13,16 +13,15 @@
 			return BASEURL + buildPath(pathTemplate, params);
 		};
 
+		const ErrorCodes = {
+			GENERIC: { message: 'Something went wrong. Sorry about that.' },
+			NETWORK: { message: 'Network error. Please make sure you are online and refresh the page.' },
+			NOT_FOUND: { message: 'The requested resource could not be found.', http: 404 }
+		};
 		class StoreError extends Error {
-			static CODES = {
-				GENERIC: { message: 'Something went wrong. Sorry about that.' },
-				NETWORK: { message: 'Network error. Please make sure you are online and refresh the page.' },
-				NOT_FOUND: { message: 'The requested resource could not be found.', http: 404 }
-			};
-
 			constructor (code, message, url, request) {
 				if (typeof code === 'number') {
-					code = Object.values(StoreError.CODES).find(({ http }) => http === code) || CODES.GENERIC;
+					code = Object.values(ErrorCodes).find(({ http }) => http === code) || ErrorCodes.GENERIC;
 				}
 				super(message || code.message);
 
@@ -52,7 +51,7 @@
 			try {
 				response = await fetch(url, request);
 			} catch (error) {
-				throw new StoreError(StoreError.CODES.NETWORK, error.message, url, request);
+				throw new StoreError(ErrorCodes.NETWORK, error.message, url, request);
 			}
 			const data = await response.json();
 			if (response.ok) {
@@ -158,7 +157,7 @@
 								return Store.User({ userId: cachedUser.shortId }).load();
 							})
 							.catch(error => {
-								if (error.code === StoreError.CODES.NOT_FOUND) {
+								if (error.code === ErrorCodes.NOT_FOUND) {
 									return Store.CurrentUser()
 										.delete()
 										.then(() => null);
@@ -168,7 +167,7 @@
 							})
 							.then(user => {
 								if (!user) {
-									throw new StoreError(StoreError.CODES.NOT_FOUND, 'Could not find current user.');
+									throw new StoreError(ErrorCodes.NOT_FOUND, 'Could not find current user.');
 								} else {
 									return user;
 								}
@@ -212,7 +211,7 @@
 			return Store;
 		}, {});
 
-		Store.ErrorCodes = StoreError.CODES;
+		Store.ErrorCodes = ErrorCodes;
 		return Store;
 	});
 
