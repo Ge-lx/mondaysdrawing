@@ -115,7 +115,7 @@
 	define('element_user_edit', [{ noCache: true }, (Store, bind) => {
 		return {
 			$template: `
-				<div class="element_user__holder">
+				<div class="element_user_edit__holder">
 					<div class="element_user_edit__image">
 						<img src="/images/user.png">
 					</div>

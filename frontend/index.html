@@ -43,16 +43,21 @@
 			}
 
 			bnc-root {
-				display: block;
-				height: 100%;
+				display: flex;
+				flex-direction: column;
+				justify-content: stretch;
+				min-height: 100%;
+			}
+
+			bnc-element[name="bnc_router"] {
+				display: flex;
+				flex-grow: 1;
 			}
 
 			bnc-element[name="bnc_router"] > bnc-state {
-				height: 100%;
-				width: 100%;
-
 				display: flex;
 				flex-direction: column;
+				flex-grow: 1;
 			}
 
 			input, input:focus {
@@ -191,10 +196,10 @@
 			}
 
 			/* USER */
-			.element_user__holder {
+			.element_user_edit__holder {
 				display: flex;
 				flex-flow: row wrap;
-				justify-content: space-between;
+				justify-content: center;
 				align-items: center;
 				width: 100%;
 			}
@@ -209,6 +214,13 @@
 			}
 			bnc-element[name="element_user"] p {
 				margin: 0 0 0 5px;
+			}
+			.element_user__holder {
+				display: flex;
+				flex-flow: row wrap;
+				justify-content: space-between;
+				align-items: center;
+				width: 100%;
 			}
 			.element_user__holder.me {
 				color: #3288bd;
