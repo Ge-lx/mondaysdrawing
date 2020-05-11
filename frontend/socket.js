@@ -78,17 +78,15 @@
 		};
 
 		const onSocketMessage = ({ data }) => {
-			console.log('data: ', data);
 			heartbeat.alive();
 			if (data === 'ping') {
 				return socket$.value.send('pong');
 			}
 
 			if (data instanceof Blob) {
-				return data.arrayBuffer()
-					.then(data => {
-						return onBinaryListeners.trigger(new Uint16Array(data));
-					});
+				const responseConsumer = new Response(data);
+				return responseConsumer.arrayBuffer()
+					.then(onBinaryListeners.trigger);
 			} else {
 				onMessageListeners.trigger(JSON.parse(data));
 			}
