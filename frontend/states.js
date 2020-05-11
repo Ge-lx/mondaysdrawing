@@ -194,26 +194,16 @@
 				SocketPath$.value = null;
 			},
 			$template: `
-				<div id="state_draw__header">
-					<div>
-						<p>Montagsmaler</p>
+				<div id="state_draw__drawing-area">
+					<bnc-element name="PathHandler"></bnc-element>
+					<div class="state_draw__toolbar-holder">
+						<bnc-element name="ToolSettings"></bnc-element>
 					</div>
-					<div class="state_draw__room_code__holder">
-						<pre bnc-bind="linkToRoom$"></pre>
-						<div class="button" bnc-click="copyRoomLink()">COPY</div>
-					</div>
-					
 				</div>
 				<div id="state_draw__content">
 					<div id="state_draw__sidebar">
 						<bnc-element name="element_user_list"></bnc-element>
 						<bnc-element name="element_chat"></bnc-element>
-					</div>
-					<div id="state_draw__drawing-area">
-						<bnc-element name="PathHandler"></bnc-element>
-						<div class="state_draw__toolbar-holder">
-							<bnc-element name="ToolSettings"></bnc-element>
-						</div>
 					</div>
 				</div>
 			`,
