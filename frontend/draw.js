@@ -142,6 +142,10 @@
 			};
 
 			InternalPathHandler.clear = () => {
+				if (InternalPathHandler.activePath !== null) {
+					InternalPathHandler.endActivePath()	
+				}
+
 				for (let path of InternalPathHandler.finishedPaths) {
 					if (path) {
 						path.remove();	
@@ -232,17 +236,27 @@
 				const canvas = canvasHolder.querySelector('canvas');
 				paper.setup(canvas);
 
-				// (function fitCanvasToHolder () {
-				// 	const refreshViewSize = () => {
-				// 		const [width, height] = [canvasHolder.width, canvasHolder.height];
-				// 		console.log('resized: ', {width, height});
-				// 		paper.view.viewSize.width = width;
-			 //            paper.view.viewSize.height = height;
-				// 	};
-			 //        const observer = new ResizeObserver(refreshViewSize);
-			 //        observer.observe(canvasHolder);
-			 //        refreshViewSize();
-			 //    }());
+				(function canvasSizing () {
+					const CANVAS_PROPS = {
+						MAX_WIDTH: 960,
+						ASPECT_RATIO: 3/2
+					};
+
+					const refreshViewSize = () => {
+						paper.view.center = new paper.Point(0, 0);
+
+						const width = canvasHolder.clientWidth;
+						paper.view.viewSize.width = width;
+			            paper.view.viewSize.height = width / CANVAS_PROPS.ASPECT_RATIO;
+
+			            const scale = width / CANVAS_PROPS.MAX_WIDTH;
+			            paper.view.zoom = scale;
+			            
+					};
+			        const observer = new ResizeObserver(refreshViewSize);
+			        observer.observe(canvasHolder);
+			        refreshViewSize();
+			    }());
 
 				onPaperInitialized(paper);
 			},
