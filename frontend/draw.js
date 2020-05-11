@@ -202,7 +202,8 @@
 					floatingPath.add(event.point);
 					if (floatingPath.segments.length > segmentBufferCount) {
 						anchorFloatingPath();
-						floatingPath = new paper.Path(ToolSettings.getPathProperties(InternalPathHandler.activePath.lastSegment));
+						const lastSegment = (InternalPathHandler.activePath || { lastSegment: null }).lastSegment;
+						floatingPath = new paper.Path(ToolSettings.getPathProperties(lastSegment));
 					}
 				};
 
