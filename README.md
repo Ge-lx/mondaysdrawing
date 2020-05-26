@@ -1,7 +1,7 @@
 # mondaysdrawing
 
 Simple drawing game
-**[:construction: Demo](https://mondaysdrawing.herokuapp.com)**
+**[:construction: Demo](https://gelx.uber.space)**
 
 ## To Do:
 
