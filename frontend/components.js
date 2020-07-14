@@ -261,21 +261,28 @@
 		};
 	});
 
-	define('element_chat', (Socket, MessageTypes, utils, users$) => {
+	define('element_chat', (Socket, MessageTypes, utils, users$, currentUser$) => {
 		// We dont use bnc-elements for individual messages for performance reasons
 		const messageLog = (function () {
 			let messageContainer = null;
 
-			const getMesageHTML = ({ name, isSystem, message }) => `
-				<div class="element_chat__message${isSystem ? ' system' : ''}">
-					<p>${name || ''}</p>
-					<p class="message">${utils.escapeHTML(message)}</p>
-				</div>
-			`;
+			const getMesageHTML = ({ name, isSystem, isMe, message }) => {
+				const classes = 'element_chat__message'
+					+ (isSystem ? ' system' : '')
+					+ (isMe ? ' reverse' : '');
 
-			const addMessage = ({ name, isSystem = false, message }) => {
+				return `
+					<div class="${classes}">
+						<p>${name || ''}</p>
+						<p class="message">${utils.escapeHTML(message)}</p>
+					</div>
+				`;
+			};
+
+			const addMessage = ({ user, isSystem = false, message }) => {
 				if (messageContainer) {
-					const messageHTML = getMesageHTML({ name, isSystem, message });
+					const isMe = user.id === currentUser$.value.id;
+					const messageHTML = getMesageHTML({ name: user.name, isSystem, isMe, message });
 					messageContainer.insertAdjacentHTML('beforeend', messageHTML);
 				} else {
 					console.error('Message container is not ready!');
@@ -291,7 +298,7 @@
 		Socket.addMessageListener(data => {
 			if (data.type === MessageTypes.CHAT) {
 				const user = users$.value[data.userId] || { name: 'Info' };
-				messageLog.addMessage({ name: user.name, message: data.message, isSystem: false });
+				messageLog.addMessage({ user, message: data.message, isSystem: false });
 			}
 		});
 
