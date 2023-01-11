@@ -13,7 +13,7 @@
     "express": "^4.17.1",
     "express-async-router": "^0.1.15",
     "express-ws": "^4.0.0",
-    "knex": "^0.20.15",
+    "knex": "^2.4.0",
     "knex-migrate": "^1.7.4",
     "shortid": "^2.2.15",
     "sqlite3": "^4.1.1"
